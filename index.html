@@ -102,6 +102,9 @@ button{
 .provider-info{
   font-size:11px;color:#5a6680;margin-top:6px;line-height:1.3;
 }
+.duration-info{
+  font-size:10px;color:#4ade80;margin-top:4px;
+}
 </style>
 </head>
 <body>
@@ -114,7 +117,7 @@ button{
   </div>
 
   <div class="notice">
-    <b>Modes disponibles :</b> Agnes AI (gratuit illimite) · fal.ai (5/jour) · Makefun (gratuit) · LTX-Video (gratuit).
+    <b>5 modes disponibles :</b> Agnes AI · fal.ai · Makefun · LTX-Video · Runway.
   </div>
 
   <!-- ===== FOURNISSEUR ===== -->
@@ -125,11 +128,12 @@ button{
       <select id="provider">
         <option value="agnes" selected>Agnes AI · cle sk- · gratuit illimite</option>
         <option value="fal">fal.ai · cle fal_ · 5/jour ultra-rapide</option>
-        <option value="makefun">Makefun · cle mf_ · gratuit illimite</option>
-        <option value="ltx">LTX-Video · cle ltx_ · gratuit rapide</option>
+        <option value="makefun">Makefun · cle mf_ · gratuit jusqu'a 30 s</option>
+        <option value="ltx">LTX-Video · cle ltx_ · gratuit jusqu'a 60 s</option>
+        <option value="runway">Runway · cle rw_ · 5/jour</option>
       </select>
       <div class="provider-info" id="providerInfo">
-        Agnes AI : gratuit et illimite, mais file d'attente parfois longue.
+        Agnes AI : gratuit et illimite, file d'attente parfois longue.
       </div>
     </div>
 
@@ -157,6 +161,7 @@ button{
           <option value="8">8 s</option>
           <option value="10">10 s</option>
         </select>
+        <div class="duration-info" id="durationInfo"></div>
       </div>
       <div class="field">
         <label for="aspect">Format</label>
@@ -195,7 +200,7 @@ button{
   </div>
 
   <div class="footer">
-    Agnes AI · fal.ai · Makefun · LTX-Video
+    Agnes AI · fal.ai · Makefun · LTX-Video · Runway
   </div>
 
 </div>
@@ -209,6 +214,7 @@ button{
   var apiKeyEl = document.getElementById('apiKey');
   var modelEl = document.getElementById('model');
   var durationEl = document.getElementById('duration');
+  var durationInfo = document.getElementById('durationInfo');
   var aspectEl = document.getElementById('aspect');
   var regionField = document.getElementById('regionField');
   var regionEl = document.getElementById('region');
@@ -221,7 +227,40 @@ button{
 
   var abortCtrl = null;
 
-  /* ---------- Helpers ---------- */
+  /* =========================================================
+     CONFIGURATION DES DUREES PAR FOURNISSEUR
+     ========================================================= */
+  var DURATIONS = {
+    agnes: {
+      values: [5, 8, 10],
+      default: 5,
+      info: 'Agnes Flash : jusqu\'a 10 s en 720P.'
+    },
+    fal: {
+      values: [5, 8, 10],
+      default: 5,
+      info: 'MiniMax H3 : jusqu\'a 10 s, 5 gratuites/jour.'
+    },
+    makefun: {
+      values: [5, 10, 15, 20, 25, 30],
+      default: 10,
+      info: 'Makefun : jusqu\'a 30 s en plan unique.'
+    },
+    ltx: {
+      values: [5, 10, 15, 20, 30, 45, 60],
+      default: 10,
+      info: 'LTX-Video : jusqu\'a 60 s (qualite optimale 10-20 s).'
+    },
+    runway: {
+      values: [5, 10],
+      default: 5,
+      info: 'Runway Gen-3 : 5 ou 10 s, 5 gratuites/jour.'
+    }
+  };
+
+  /* =========================================================
+     HELPERS
+     ========================================================= */
   function setStatus(t, c){
     statusEl.textContent = t;
     statusEl.className = 'status' + (c ? ' ' + c : '');
@@ -279,51 +318,86 @@ button{
     });
   }
 
-  /* ---------- Provider UI ---------- */
+  /* =========================================================
+     MISE A JOUR DYNAMIQUE DES DUREES
+     ========================================================= */
+  function refreshDurations(providerKey){
+    var cfg = DURATIONS[providerKey] || DURATIONS.agnes;
+    durationEl.innerHTML = '';
+    cfg.values.forEach(function(v){
+      var opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v + ' s';
+      if (v === cfg.default) opt.selected = true;
+      durationEl.appendChild(opt);
+    });
+    durationInfo.textContent = cfg.info;
+  }
+
+  /* =========================================================
+     MISE A JOUR DYNAMIQUE DE L'INTERFACE
+     ========================================================= */
   function refreshProviderUI(){
     var p = providerEl.value;
-    if (p === 'puter') {
-      keyField.style.display = 'none';
-      regionField.style.display = 'none';
-      providerInfo.textContent = 'Puter.js : aucune cle requise. La premiere fois, une connexion gratuite peut etre demandee.';
-      modelEl.innerHTML =
-        '<option value="google/veo-3.1-lite">Veo 3.1 Lite (rapide)</option>' +
-        '<option value="google/veo-3.1">Veo 3.1 (haute qualite)</option>' +
-        '<option value="vidu/vidu-q3">Vidu Q3 (1080p + audio)</option>' +
-        '<option value="kwaivgi/kling-2.1-master">Kling 2.1 Master</option>';
-    } else if (p === 'agnes') {
+
+    if (p === 'agnes') {
       keyField.style.display = '';
       regionField.style.display = '';
       apiKeyEl.placeholder = 'sk-...';
       keyHint.innerHTML = 'Obtenir une cle : <a href="https://platform.agnes-ai.cn" target="_blank">platform.agnes-ai.cn</a>';
-      providerInfo.textContent = 'Agnes AI : gratuit et illimite, mais file d\'attente parfois longue.';
-      modelEl.innerHTML = '<option value="agnes-video-2.5-flash">Agnes 2.5 Flash (gratuit)</option>';
+      providerInfo.textContent = 'Agnes AI : gratuit et illimite, file d\'attente parfois longue.';
+      modelEl.innerHTML =
+        '<option value="agnes-video-2.5-flash">Agnes 2.5 Flash (gratuit)</option>';
+
     } else if (p === 'fal') {
       keyField.style.display = '';
       regionField.style.display = 'none';
       apiKeyEl.placeholder = 'fal_...';
       keyHint.innerHTML = 'Obtenir une cle : <a href="https://fal.ai/dashboard/keys" target="_blank">fal.ai/dashboard/keys</a>';
       providerInfo.textContent = 'fal.ai : 5 videos gratuites par jour, generation ultra-rapide.';
-      modelEl.innerHTML = '<option value="fal-ai/minimax/h3/text-to-video">MiniMax H3 (5/jour gratuit)</option>';
+      modelEl.innerHTML =
+        '<option value="fal-ai/minimax/h3/text-to-video">MiniMax H3 (5/jour gratuit)</option>';
+
     } else if (p === 'makefun') {
       keyField.style.display = '';
       regionField.style.display = 'none';
       apiKeyEl.placeholder = 'mf_...';
       keyHint.innerHTML = 'Obtenir une cle : <a href="https://makefun.ai/app/dev" target="_blank">makefun.ai/app/dev</a>';
-      providerInfo.textContent = 'Makefun : gratuit et illimite, integre Wan 2.6, Veo 3.1.';
-      modelEl.innerHTML = '<option value="wan-2.6">Wan 2.6 (gratuit)</option>';
+      providerInfo.textContent = 'Makefun : gratuit, integre Wan 2.6 / Veo 3.1, jusqu\'a 30 s.';
+      modelEl.innerHTML =
+        '<option value="wan-2.6">Wan 2.6 (gratuit)</option>' +
+        '<option value="veo-3.1-fast">Veo 3.1 Fast</option>' +
+        '<option value="kling-3.0">Kling 3.0</option>';
+
     } else if (p === 'ltx') {
       keyField.style.display = '';
       regionField.style.display = 'none';
       apiKeyEl.placeholder = 'ltx_...';
       keyHint.innerHTML = 'Obtenir une cle : <a href="https://console.ltx.video/" target="_blank">console.ltx.video</a>';
-      providerInfo.textContent = 'LTX-Video : gratuit et rapide, via deAPI.ai.';
-      modelEl.innerHTML = '<option value="ltx-video-13b">LTX-Video 13B (gratuit)</option>';
+      providerInfo.textContent = 'LTX-Video : gratuit, jusqu\'a 60 s, qualite optimale 10-20 s.';
+      modelEl.innerHTML =
+        '<option value="ltx-video-13b">LTX-Video 13B (gratuit)</option>' +
+        '<option value="ltx-video-13b-distilled">LTX-Video 13B Distilled (rapide)</option>';
+
+    } else if (p === 'runway') {
+      keyField.style.display = '';
+      regionField.style.display = 'none';
+      apiKeyEl.placeholder = 'rw_...';
+      keyHint.innerHTML = 'Obtenir une cle : <a href="https://dev.runwayml.com/" target="_blank">dev.runwayml.com</a>';
+      providerInfo.textContent = 'Runway Gen-3 Alpha : 5 videos gratuites par jour, 5 ou 10 s.';
+      modelEl.innerHTML =
+        '<option value="gen3a_turbo">Gen-3 Alpha Turbo (rapide)</option>' +
+        '<option value="gen3a">Gen-3 Alpha</option>';
     }
+
+    /* Mise a jour des durees disponibles */
+    refreshDurations(p);
   }
   providerEl.addEventListener('change', refreshProviderUI);
 
-  /* ---------- AGNES AI (avec retry automatique) ---------- */
+  /* =========================================================
+     AGNES AI
+     ========================================================= */
   function generateAgnes(apiKey, model, prompt, duration, aspect, region, signal){
     var baseUrl = region === 'com'
       ? 'https://apihub.agnes-ai.com/v1'
@@ -348,26 +422,31 @@ button{
       signal: signal
     }).then(function(res){
       if (!res.ok) {
-        return res.text().then(function(t){ throw new Error('HTTP ' + res.status + ' - ' + t.slice(0, 200)); });
+        return res.text().then(function(t){
+          throw new Error('HTTP ' + res.status + ' - ' + t.slice(0, 200));
+        });
       }
       return res.json();
     }).then(function(created){
       var videoId = created.video_id || created.id;
       if (!videoId) throw new Error('Pas de video_id dans la reponse Agnes.');
       log('info', 'Tache creee : ' + videoId);
-      var pollUrl = pollHost + '/agnesapi?video_id=' + encodeURIComponent(videoId) + '&model_name=' + encodeURIComponent(model);
+      var pollUrl = pollHost + '/agnesapi?video_id=' + encodeURIComponent(videoId)
+                  + '&model_name=' + encodeURIComponent(model);
       var start = Date.now();
       var attempt = 0;
-      var maxAttempts = 60;
+      var maxAttempts = 120;
       return new Promise(function(resolve, reject){
         function poll(){
           if (signal && signal.aborted) { reject(new Error('Annule')); return; }
-          if (Date.now() - start > 15 * 60 * 1000) { reject(new Error('Timeout 15 min')); return; }
+          if (Date.now() - start > 20 * 60 * 1000) { reject(new Error('Timeout 20 min')); return; }
           attempt++;
-          if (attempt > maxAttempts) { reject(new Error('Nombre maximum de tentatives atteint.')); return; }
+          if (attempt > maxAttempts) { reject(new Error('Trop de tentatives.')); return; }
           fetch(pollUrl, { headers: { 'Authorization': 'Bearer ' + apiKey }, signal: signal })
             .then(function(r){
-              if (!r.ok) return r.text().then(function(t){ throw new Error('Polling HTTP ' + r.status + ' - ' + t.slice(0, 150)); });
+              if (!r.ok) return r.text().then(function(t){
+                throw new Error('Polling HTTP ' + r.status + ' - ' + t.slice(0, 150));
+              });
               return r.json();
             })
             .then(function(data){
@@ -375,7 +454,10 @@ button{
               var elapsed = Math.round((Date.now() - start) / 1000);
               log('process', 'Statut : ' + st + ' (' + elapsed + 's)');
               if (st === 'completed' || data.url) { resolve(data.url || data.video_url); return; }
-              if (st === 'failed' || st === 'error') { reject(new Error(data.error || data.message || 'Echec Agnes')); return; }
+              if (st === 'failed' || st === 'error') {
+                reject(new Error(data.error || data.message || 'Echec Agnes'));
+                return;
+              }
               var delay = attempt < 8 ? 8000 : 15000;
               setTimeout(poll, delay);
             })
@@ -386,13 +468,19 @@ button{
     });
   }
 
-  /* ---------- FAL.AI (avec gestion de file d'attente) ---------- */
+  /* =========================================================
+     FAL.AI
+     ========================================================= */
   function generateFal(apiKey, model, prompt, duration, aspect, signal){
     log('pending', 'Soumission a fal.ai...');
     return fetch('https://queue.fal.run/' + model, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Key ' + apiKey },
-      body: JSON.stringify({ prompt: prompt, duration: String(duration), aspect_ratio: aspect }),
+      body: JSON.stringify({
+        prompt: prompt,
+        duration: String(duration),
+        aspect_ratio: aspect
+      }),
       signal: signal
     }).then(function(res){
       if (!res.ok) {
@@ -411,7 +499,9 @@ button{
           if (Date.now() - start > 5 * 60 * 1000) { reject(new Error('Timeout 5 min')); return; }
           fetch(statusUrl, { headers: { 'Authorization': 'Key ' + apiKey }, signal: signal })
             .then(function(r){
-              if (!r.ok) return r.text().then(function(t){ throw new Error('Polling HTTP ' + r.status + ' - ' + t.slice(0, 150)); });
+              if (!r.ok) return r.text().then(function(t){
+                throw new Error('Polling HTTP ' + r.status + ' - ' + t.slice(0, 150));
+              });
               return r.json();
             })
             .then(function(data){
@@ -429,7 +519,10 @@ button{
                   .catch(reject);
                 return;
               }
-              if (st === 'FAILED' || st === 'ERROR') { reject(new Error(data.error || 'Echec fal.ai')); return; }
+              if (st === 'FAILED' || st === 'ERROR') {
+                reject(new Error(data.error || 'Echec fal.ai'));
+                return;
+              }
               setTimeout(poll, 3000);
             })
             .catch(reject);
@@ -439,13 +532,23 @@ button{
     });
   }
 
-  /* ---------- MAKEFUN (avec retry) ---------- */
+  /* =========================================================
+     MAKEFUN
+     ========================================================= */
   function generateMakefun(apiKey, model, prompt, duration, aspect, signal){
-    log('pending', 'Soumission a Makefun...');
+    log('pending', 'Soumission a Makefun (' + duration + 's)...');
     return fetch('https://api.makefun.ai/v1/videos/generations', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-      body: JSON.stringify({ model: model, prompt: prompt, duration: parseInt(duration,10), aspect_ratio: aspect }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: model,
+        prompt: prompt,
+        duration: parseInt(duration, 10),
+        aspect_ratio: aspect
+      }),
       signal: signal
     }).then(function(res){
       if (!res.ok) {
@@ -453,32 +556,40 @@ button{
       }
       return res.json();
     }).then(function(submit){
-      var jobId = submit.id || submit.job_id;
+      var jobId = submit.id || submit.job_id || submit.task_id;
       if (!jobId) throw new Error('Pas de job_id dans la reponse Makefun.');
       log('info', 'Job Makefun : ' + jobId);
       var start = Date.now();
+      var attempt = 0;
       return new Promise(function(resolve, reject){
         function poll(){
           if (signal && signal.aborted) { reject(new Error('Annule')); return; }
-          if (Date.now() - start > 10 * 60 * 1000) { reject(new Error('Timeout 10 min')); return; }
+          if (Date.now() - start > 15 * 60 * 1000) { reject(new Error('Timeout 15 min')); return; }
+          attempt++;
           fetch('https://api.makefun.ai/v1/videos/generations/' + jobId, {
-            headers: { 'Authorization': 'Bearer ' + apiKey }, signal: signal
+            headers: { 'Authorization': 'Bearer ' + apiKey },
+            signal: signal
           })
             .then(function(r){
-              if (!r.ok) return r.text().then(function(t){ throw new Error('Polling HTTP ' + r.status + ' - ' + t.slice(0, 150)); });
+              if (!r.ok) return r.text().then(function(t){
+                throw new Error('Polling HTTP ' + r.status + ' - ' + t.slice(0, 150));
+              });
               return r.json();
             })
             .then(function(data){
               var st = (data.status || '').toLowerCase();
               var elapsed = Math.round((Date.now() - start) / 1000);
               log('process', 'Statut : ' + st + ' (' + elapsed + 's)');
-              if (st === 'succeeded' || st === 'completed') {
+              if (st === 'succeeded' || st === 'completed' || st === 'success') {
                 var url = data.video_url || data.url || (data.output && data.output.url);
                 if (!url) { reject(new Error('Aucune URL video dans la reponse Makefun.')); return; }
                 resolve(url);
                 return;
               }
-              if (st === 'failed' || st === 'error') { reject(new Error(data.error || 'Echec Makefun')); return; }
+              if (st === 'failed' || st === 'error') {
+                reject(new Error(data.error || 'Echec Makefun'));
+                return;
+              }
               setTimeout(poll, 5000);
             })
             .catch(reject);
@@ -488,13 +599,23 @@ button{
     });
   }
 
-  /* ---------- LTX-VIDEO (avec retry) ---------- */
+  /* =========================================================
+     LTX-VIDEO
+     ========================================================= */
   function generateLtx(apiKey, model, prompt, duration, aspect, signal){
-    log('pending', 'Soumission a LTX-Video (deAPI.ai)...');
+    log('pending', 'Soumission a LTX-Video (' + duration + 's)...');
     return fetch('https://api.deapi.ai/api/v2/videos/generations', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-      body: JSON.stringify({ model: model, prompt: prompt, duration: parseInt(duration,10), aspect_ratio: aspect }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: model,
+        prompt: prompt,
+        duration: parseInt(duration, 10),
+        aspect_ratio: aspect
+      }),
       signal: signal
     }).then(function(res){
       if (!res.ok) {
@@ -509,25 +630,31 @@ button{
       return new Promise(function(resolve, reject){
         function poll(){
           if (signal && signal.aborted) { reject(new Error('Annule')); return; }
-          if (Date.now() - start > 5 * 60 * 1000) { reject(new Error('Timeout 5 min')); return; }
+          if (Date.now() - start > 15 * 60 * 1000) { reject(new Error('Timeout 15 min')); return; }
           fetch('https://api.deapi.ai/api/v2/videos/generations/' + taskId, {
-            headers: { 'Authorization': 'Bearer ' + apiKey }, signal: signal
+            headers: { 'Authorization': 'Bearer ' + apiKey },
+            signal: signal
           })
             .then(function(r){
-              if (!r.ok) return r.text().then(function(t){ throw new Error('Polling HTTP ' + r.status + ' - ' + t.slice(0, 150)); });
+              if (!r.ok) return r.text().then(function(t){
+                throw new Error('Polling HTTP ' + r.status + ' - ' + t.slice(0, 150));
+              });
               return r.json();
             })
             .then(function(data){
               var st = (data.status || '').toLowerCase();
               var elapsed = Math.round((Date.now() - start) / 1000);
               log('process', 'Statut : ' + st + ' (' + elapsed + 's)');
-              if (st === 'succeeded' || st === 'completed') {
+              if (st === 'succeeded' || st === 'completed' || st === 'success') {
                 var url = data.video_url || data.url || (data.output && data.output.url);
                 if (!url) { reject(new Error('Aucune URL video dans la reponse LTX.')); return; }
                 resolve(url);
                 return;
               }
-              if (st === 'failed' || st === 'error') { reject(new Error(data.error || 'Echec LTX')); return; }
+              if (st === 'failed' || st === 'error') {
+                reject(new Error(data.error || 'Echec LTX'));
+                return;
+              }
               setTimeout(poll, 3000);
             })
             .catch(reject);
@@ -537,7 +664,79 @@ button{
     });
   }
 
-  /* ---------- GENERATION ---------- */
+  /* =========================================================
+     RUNWAY
+     ========================================================= */
+  function generateRunway(apiKey, model, prompt, duration, aspect, signal){
+    log('pending', 'Soumission a Runway (' + model + ')...');
+    /* Runway utilise un endpoint et un polling specifiques */
+    return fetch('https://api.dev.runwayml.com/v1/image_to_video', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey,
+        'X-Runway-Version': '2024-11-06'
+      },
+      body: JSON.stringify({
+        model: model,
+        promptText: prompt,
+        duration: parseInt(duration, 10),
+        ratio: aspect === '9:16' ? '720:1280' : aspect === '1:1' ? '960:960' : '1280:720'
+      }),
+      signal: signal
+    }).then(function(res){
+      if (!res.ok) {
+        return res.text().then(function(t){ throw new Error('HTTP ' + res.status + ' - ' + t.slice(0, 200)); });
+      }
+      return res.json();
+    }).then(function(submit){
+      var taskId = submit.id;
+      if (!taskId) throw new Error('Pas de task_id dans la reponse Runway.');
+      log('info', 'Task Runway : ' + taskId);
+      var start = Date.now();
+      return new Promise(function(resolve, reject){
+        function poll(){
+          if (signal && signal.aborted) { reject(new Error('Annule')); return; }
+          if (Date.now() - start > 5 * 60 * 1000) { reject(new Error('Timeout 5 min')); return; }
+          fetch('https://api.dev.runwayml.com/v1/tasks/' + taskId, {
+            headers: {
+              'Authorization': 'Bearer ' + apiKey,
+              'X-Runway-Version': '2024-11-06'
+            },
+            signal: signal
+          })
+            .then(function(r){
+              if (!r.ok) return r.text().then(function(t){
+                throw new Error('Polling HTTP ' + r.status + ' - ' + t.slice(0, 150));
+              });
+              return r.json();
+            })
+            .then(function(data){
+              var st = (data.status || '').toUpperCase();
+              var elapsed = Math.round((Date.now() - start) / 1000);
+              log('process', 'Statut : ' + st + ' (' + elapsed + 's)');
+              if (st === 'SUCCEEDED') {
+                var url = (data.output && data.output[0]) || data.url;
+                if (!url) { reject(new Error('Aucune URL video dans la reponse Runway.')); return; }
+                resolve(url);
+                return;
+              }
+              if (st === 'FAILED') {
+                reject(new Error(data.failure || 'Echec Runway'));
+                return;
+              }
+              setTimeout(poll, 4000);
+            })
+            .catch(reject);
+        }
+        setTimeout(poll, 4000);
+      });
+    });
+  }
+
+  /* =========================================================
+     GENERATION PRINCIPALE
+     ========================================================= */
   genBtn.addEventListener('click', function(){
     var provider = providerEl.value;
     var prompt = promptEl.value.trim();
@@ -547,25 +746,28 @@ button{
     var apiKey = apiKeyEl.value.trim();
     var region = regionEl.value;
 
+    /* Validation prompt */
     if (!prompt || prompt.length < 5) {
       log('err', 'Prompt trop court (min 5 caracteres).');
       setStatus('Prompt trop court', 'err');
       return;
     }
 
-    if (provider !== 'puter') {
-      var prefix = provider === 'agnes' ? 'sk-' : provider === 'fal' ? 'fal_' : provider === 'makefun' ? 'mf_' : 'ltx_';
-      if (!apiKey) {
-        log('err', 'Cle API requise pour ' + provider + '.');
-        setStatus('Cle requise', 'err');
-        return;
-      }
-      if (apiKey.indexOf(prefix) !== 0) {
-        log('err', 'La cle ' + provider + ' doit commencer par "' + prefix + '".');
-        return;
-      }
+    /* Validation cle API */
+    var prefixMap = { agnes: 'sk-', fal: 'fal_', makefun: 'mf_', ltx: 'ltx_', runway: 'rw_' };
+    var prefix = prefixMap[provider];
+    if (!apiKey) {
+      log('err', 'Cle API requise pour ' + provider + '.');
+      setStatus('Cle requise', 'err');
+      return;
+    }
+    if (prefix && apiKey.indexOf(prefix) !== 0) {
+      log('err', 'La cle ' + provider + ' doit commencer par "' + prefix + '".');
+      setStatus('Cle invalide', 'err');
+      return;
     }
 
+    /* Verrouillage UI */
     genBtn.disabled = true;
     genBtn.innerHTML = '<span class="spinner"></span>Generation...';
     player.style.display = 'none';
@@ -587,8 +789,10 @@ button{
       task = generateFal(apiKey, model, prompt, duration, aspect, signal);
     } else if (provider === 'makefun') {
       task = generateMakefun(apiKey, model, prompt, duration, aspect, signal);
-    } else {
+    } else if (provider === 'ltx') {
       task = generateLtx(apiKey, model, prompt, duration, aspect, signal);
+    } else {
+      task = generateRunway(apiKey, model, prompt, duration, aspect, signal);
     }
 
     task.then(function(url){
@@ -604,6 +808,8 @@ button{
         log('info', 'File Agnes pleine. Essayez fal.ai, Makefun ou LTX-Video.');
       } else if (/401|403/.test(msg)) {
         log('info', 'Cle invalide ou expiree.');
+      } else if (/429/.test(msg)) {
+        log('info', 'Limite de debit atteinte. Patientez quelques minutes.');
       } else if (/Failed to fetch|NetworkError/i.test(msg)) {
         log('info', 'Probleme reseau. Verifiez votre connexion.');
       }
@@ -614,6 +820,9 @@ button{
     });
   });
 
+  /* =========================================================
+     VIDER LE JOURNAL
+     ========================================================= */
   clearBtn.addEventListener('click', function(){
     logEl.innerHTML = '';
     player.style.display = 'none';
@@ -621,6 +830,9 @@ button{
     setStatus('', '');
   });
 
+  /* =========================================================
+     INITIALISATION
+     ========================================================= */
   refreshProviderUI();
 })();
 </script>
