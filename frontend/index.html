@@ -1,28 +1,341 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Agnes Video Generator</title>
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="1024x1024" href="/static/icon.png" />
-    <link rel="apple-touch-icon" href="/static/icon.png" />
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Star en Voiture — Ta photo, ton prompt</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f8f9fa; color: #1a1a1a; font-family: 'Inter', sans-serif; }
+        .video-container { aspect-ratio: 9/16; background: #000; border-radius: 16px; overflow: hidden; position: relative; width: 100%; max-width: 300px; margin: 0 auto; }
+        .loading-progress { height: 100%; background: linear-gradient(90deg, #ff00ff, #00ffff); width: 0%; transition: width 0.5s; }
+        .api-status { font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+        .api-status.ready { color: #10b981; }
+        .api-status.missing { color: #ef4444; }
+    </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col items-center">
+
+    <header class="text-center mb-6 mt-4 w-full max-w-md">
+        <h1 class="text-2xl font-bold flex items-center justify-center gap-2">🚗 Star en Voiture</h1>
+        <p class="text-gray-500 text-sm mt-1">Votre photo prend vie selon votre imagination</p>
+    </header>
+
+    <main class="w-full max-w-md bg-white rounded-2xl p-5 shadow-xl border border-gray-100">
+        
+        <!-- Info Box -->
+        <div class="bg-pink-50 border-l-4 border-pink-500 p-4 mb-5 rounded-r-lg text-sm text-gray-700">
+            <p class="font-semibold mb-1">Comment ça marche :</p>
+            <p>Écrivez ce que vous voulez, ajoutez <strong>1 photo</strong>, et l'IA génère la vidéo correspondante.</p>
+        </div>
+
+        <!-- API Key Section -->
+        <div class="mb-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div class="flex flex-col gap-3">
+                <input type="password" id="apiKeyInput" placeholder="Collez votre clé API ici (sk-...)" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-pink-500"/>
+                <button id="saveKeyBtn" class="w-full bg-gray-900 text-white font-semibold py-2 rounded-lg hover:bg-gray-800 transition-all text-sm">
+                    Enregistrer la clé
+                </button>
+            </div>
+            <div id="apiStatus" class="api-status mt-3 text-gray-500">
+                <span class="w-2 h-2 rounded-full bg-gray-400"></span> Aucune clé API enregistrée
+            </div>
+        </div>
+
+        <!-- Stats & Anti-Sleep -->
+        <div class="flex justify-between items-center mb-5 text-xs bg-gray-50 p-3 rounded-lg">
+            <div class="flex items-center gap-2 text-gray-600">
+                <span>📊 Vitesse : en attente</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-gray-600">0 génération</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="wakeLockToggle" class="sr-only peer" checked>
+                    <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
+                    <span class="ml-2 text-gray-600 font-medium">Garder l'écran allumé</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Champ de Prompt -->
+        <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-700 mb-2">✍️ Votre description (Prompt)</label>
+            <textarea id="promptInput" rows="3" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-pink-500 resize-none" placeholder="Ex: Le personnage marche devant une Lamborghini rose, cinématique, 4k, synchro labiale...">Le personnage marche devant une Lamborghini rose personnalisée, cinématique, 4k, synchro labiale naturelle</textarea>
+        </div>
+
+        <!-- Photo Upload -->
+        <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-xl p-8 mb-5 text-center cursor-pointer hover:border-pink-400 transition-colors">
+            <input type="file" id="photoInput" accept="image/*" class="hidden"/>
+            <div class="text-4xl text-gray-400 mb-2">+</div>
+            <p class="text-sm text-gray-500">Ajoutez votre photo ici</p>
+        </div>
+
+        <!-- Preview -->
+        <div id="previewArea" class="hidden mb-5">
+            <div class="video-container">
+                <img id="previewImage" class="w-full h-full object-cover opacity-90" />
+            </div>
+        </div>
+
+        <!-- Generate Button -->
+        <button id="generateBtn" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:from-pink-500 hover:to-purple-500 transition-all shadow-lg shadow-pink-500/30 disabled:opacity-50 disabled:cursor-not-allowed">
+            🚀 Générer la vidéo
+        </button>
+
+        <!-- Status Area -->
+        <div id="statusArea" class="mt-5 text-center hidden">
+            <div class="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden mb-2">
+                <div class="loading-progress" id="progressBar"></div>
+            </div>
+            <p id="statusText" class="text-sm text-gray-500 animate-pulse">Initialisation...</p>
+        </div>
+
+        <!-- Result Area -->
+        <div id="resultArea" class="mt-5 hidden">
+            <div class="video-container">
+                <video id="resultVideo" controls autoplay loop class="w-full h-full object-cover"></video>
+            </div>
+            <a id="downloadBtn" download="video_generee.mp4" class="block w-full mt-3 text-center bg-gray-800 text-white text-sm py-2 rounded-lg hover:bg-gray-700 transition">Télécharger la vidéo</a>
+        </div>
+    </main>
+
     <script>
-      /* ── 主题防闪烁：hydration/DOM 前同步设置 <html data-theme>（与官网一致）── */
-      (function () {
-        try {
-          var m = localStorage.getItem('theme');
-          var mode = (m === 'light' || m === 'dark' || m === 'system') ? m : 'system';
-          var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-        } catch (e) {
-          document.documentElement.setAttribute('data-theme', 'dark');
+        // --- DOM Elements ---
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveKeyBtn = document.getElementById('saveKeyBtn');
+        const apiStatus = document.getElementById('apiStatus');
+        const photoInput = document.getElementById('photoInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const previewArea = document.getElementById('previewArea');
+        const previewImage = document.getElementById('previewImage');
+        const promptInput = document.getElementById('promptInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const statusArea = document.getElementById('statusArea');
+        const statusText = document.getElementById('statusText');
+        const progressBar = document.getElementById('progressBar');
+        const resultArea = document.getElementById('resultArea');
+        const resultVideo = document.getElementById('resultVideo');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const wakeLockToggle = document.getElementById('wakeLockToggle');
+
+        let wakeLock = null;
+        let currentImageFile = null;
+        let currentImageBase64 = null;
+
+        // --- 1. Gestion de la Clé API ---
+        function loadApiKey() {
+            const savedKey = localStorage.getItem('agnes_api_key');
+            if (savedKey) {
+                apiKeyInput.value = savedKey;
+                updateApiStatus(true);
+            } else {
+                updateApiStatus(false);
+            }
         }
-      })();
+
+        function updateApiStatus(isReady) {
+            if (isReady) {
+                apiStatus.className = 'api-status ready';
+                apiStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span> Clé API enregistrée';
+            } else {
+                apiStatus.className = 'api-status missing';
+                apiStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500"></span> Aucune clé API enregistrée';
+            }
+        }
+
+        saveKeyBtn.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('agnes_api_key', key);
+                updateApiStatus(true);
+                alert('Clé API enregistrée avec succès !');
+            } else {
+                localStorage.removeItem('agnes_api_key');
+                updateApiStatus(false);
+                alert('Veuillez entrer une clé valide.');
+            }
+        });
+
+        loadApiKey();
+
+        // --- 2. Anti-veille ---
+        async function requestWakeLock() {
+            if (!wakeLockToggle.checked) return;
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.error(`Erreur Wake Lock: ${err.name}`);
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock !== null) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+        }
+
+        // --- 3. Upload de la photo ---
+        uploadArea.addEventListener('click', () => photoInput.click());
+
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                currentImageFile = file;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    currentImageBase64 = event.target.result;
+                    previewImage.src = currentImageBase64;
+                    uploadArea.classList.add('hidden');
+                    previewArea.classList.remove('hidden');
+                    resultArea.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // --- 4. Génération de la Vidéo (Appel API Réel) ---
+        generateBtn.addEventListener('click', async () => {
+            const apiKey = localStorage.getItem('agnes_api_key');
+            const userPrompt = promptInput.value.trim();
+            
+            if (!apiKey) {
+                alert("Veuillez d'abord enregistrer votre clé API Agnes.");
+                return;
+            }
+            if (!currentImageBase64) {
+                alert("Veuillez d'abord ajouter une photo.");
+                return;
+            }
+            if (!userPrompt) {
+                alert("Veuillez écrire une description (prompt) pour la vidéo.");
+                return;
+            }
+
+            generateBtn.disabled = true;
+            statusArea.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+            progressBar.style.width = '0%';
+            
+            await requestWakeLock();
+
+            // --- ÉTAPE 1 : Création de la tâche vidéo ---
+            statusText.innerText = "Création de la tâche vidéo...";
+            progressBar.style.width = '10%';
+
+            try {
+                const createResponse = await fetch('https://apihub.agnes-ai.com/v1/videos', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'agnes-video-2.5',
+                        prompt: userPrompt,
+                        image: currentImageBase64,
+                        seconds: '5',
+                        mode: 'ti2vid',
+                        size: '720P',
+                        aspect_ratio: '9:16'
+                    })
+                });
+
+                if (!createResponse.ok) {
+                    if (createResponse.status === 429) {
+                        throw new Error("Trop de requêtes. Veuillez patienter 62 secondes.");
+                    } else if (createResponse.status === 503) {
+                        throw new Error("Serveur Agnes occupé. Réessayez plus tard.");
+                    } else {
+                        const errorData = await createResponse.json().catch(() => ({}));
+                        throw new Error(errorData.message || `Erreur (${createResponse.status})`);
+                    }
+                }
+
+                const createData = await createResponse.json();
+                const videoId = createData.video_id || createData.id || createData.task_id;
+
+                if (!videoId) {
+                    throw new Error("L'API n'a pas renvoyé d'identifiant de vidéo.");
+                }
+
+                console.log('Tâche créée avec ID:', videoId);
+
+                // --- ÉTAPE 2 : Interrogation (Polling) du résultat ---
+                statusText.innerText = "Génération de la vidéo en cours...";
+                progressBar.style.width = '30%';
+
+                let videoUrl = null;
+                const maxAttempts = 60; // 60 tentatives * 2 secondes = 2 minutes max
+                const pollInterval = 2000; // 2 secondes entre chaque tentative
+
+                for (let i = 0; i < maxAttempts; i++) {
+                    await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+                    // Mise à jour de la barre de progression
+                    const progress = Math.min(30 + (i / maxAttempts) * 60, 90);
+                    progressBar.style.width = `${progress}%`;
+                    statusText.innerText = `Génération en cours... (${i + 1}/${maxAttempts})`;
+
+                    const statusResponse = await fetch(
+                        `https://apihub.agnes-ai.com/agnesapi?video_id=${videoId}&model_name=agnes-video-2.5`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${apiKey}`
+                            }
+                        }
+                    );
+
+                    if (!statusResponse.ok) {
+                        console.warn(`Erreur lors de l'interrogation (tentative ${i + 1}):`, statusResponse.status);
+                        continue; // On continue à essayer
+                    }
+
+                    const statusData = await statusResponse.json();
+                    console.log('Statut:', statusData);
+
+                    // Vérifier si la vidéo est prête
+                    if (statusData.status === 'completed' || statusData.status === 'succeeded' || statusData.url || statusData.video_url) {
+                        videoUrl = statusData.url || statusData.video_url;
+                        break;
+                    }
+
+                    // Vérifier si la génération a échoué
+                    if (statusData.status === 'failed') {
+                        throw new Error(statusData.error || "La génération vidéo a échoué côté serveur.");
+                    }
+                }
+
+                if (!videoUrl) {
+                    throw new Error("Délai dépassé. La génération a pris trop de temps. Veuillez réessayer.");
+                }
+
+                // --- ÉTAPE 3 : Affichage du résultat ---
+                progressBar.style.width = '100%';
+                statusText.innerText = "Vidéo générée avec succès !";
+
+                resultVideo.src = videoUrl;
+                downloadBtn.href = videoUrl;
+                resultArea.classList.remove('hidden');
+
+            } catch (error) {
+                alert("Erreur : " + error.message);
+                console.error(error);
+                progressBar.style.width = '0%';
+            } finally {
+                releaseWakeLock();
+                generateBtn.disabled = false;
+                statusArea.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                await wakeLock.request('screen');
+            }
+        });
     </script>
-  </head>
-  <body class="text-ink min-h-screen font-sans" style="background: radial-gradient(ellipse 45% 38% at 50% 0%, color-mix(in oklab, var(--color-accent) 6%, transparent), transparent 70%), var(--color-paper);">
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+</body>
 </html>
