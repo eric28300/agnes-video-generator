@@ -189,7 +189,7 @@
             }
         });
 
-        // --- 4. Génération de la Vidéo (Appel API Réel) ---
+        // --- 4. Génération de la Vidéo (Appel API Réel avec Retry) ---
         generateBtn.addEventListener('click', async () => {
             const apiKey = localStorage.getItem('agnes_api_key');
             const userPrompt = promptInput.value.trim();
@@ -219,37 +219,56 @@
             
             await requestWakeLock();
 
-            // --- ÉTAPE 1 : Création de la tâche vidéo ---
-            statusText.innerText = "Création de la tâche vidéo...";
-            progressBar.style.width = '10%';
-
             try {
-                const createResponse = await fetch('https://apihub.agnes-ai.com/v1/videos', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'agnes-video-2.5-flash',
-                        prompt: userPrompt,
-                        seconds: '5',
-                        mode: 'reference',
-                        size: '720P',
-                        aspect_ratio: '9:16',
-                        images: [currentImageBase64]
-                    })
-                });
+                // --- ÉTAPE 1 : Création de la tâche vidéo (avec Retry) ---
+                let createResponse;
+                let attempt = 0;
+                const maxRetries = 5;
+                let success = false;
 
-                if (!createResponse.ok) {
-                    const errorData = await createResponse.json().catch(() => ({}));
-                    if (createResponse.status === 429) {
-                        throw new Error("Trop de requêtes. Veuillez patienter 62 secondes.");
-                    } else if (createResponse.status === 503) {
-                        throw new Error("Serveur Agnes occupé. Réessayez plus tard.");
-                    } else {
-                        throw new Error(errorData.message || `Erreur (${createResponse.status})`);
+                while (attempt < maxRetries && !success) {
+                    attempt++;
+                    try {
+                        createResponse = await fetch('https://apihub.agnes-ai.com/v1/videos', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${apiKey}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                model: 'agnes-video-2.5-flash',
+                                prompt: userPrompt,
+                                seconds: '5',
+                                mode: 'reference',
+                                size: '720P',
+                                aspect_ratio: '9:16',
+                                images: [currentImageBase64]
+                            })
+                        });
+
+                        if (createResponse.ok) {
+                            success = true;
+                        } else if (createResponse.status === 429 || createResponse.status === 503) {
+                            // Si le serveur est occupé, on attend et on réessaie
+                            statusText.innerText = `Serveur occupé. Nouvelle tentative dans ${attempt * 5} secondes... (${attempt}/${maxRetries})`;
+                            progressBar.style.width = `${10 + (attempt * 5)}%`;
+                            await new Promise(resolve => setTimeout(resolve, attempt * 5000));
+                        } else {
+                            // Si c'est une autre erreur (ex: clé invalide), on arrête
+                            const errorData = await createResponse.json().catch(() => ({}));
+                            throw new Error(errorData.message || `Erreur (${createResponse.status})`);
+                        }
+                    } catch (error) {
+                        if (attempt >= maxRetries) {
+                            throw error;
+                        }
+                        statusText.innerText = `Erreur réseau. Nouvelle tentative... (${attempt}/${maxRetries})`;
+                        await new Promise(resolve => setTimeout(resolve, attempt * 5000));
                     }
+                }
+
+                if (!createResponse || !createResponse.ok) {
+                    throw new Error("Impossible de créer la tâche après plusieurs tentatives. Le serveur est probablement surchargé.");
                 }
 
                 const createData = await createResponse.json();
@@ -267,7 +286,7 @@
 
                 let videoUrl = null;
                 const maxAttempts = 60;
-                const pollInterval = 2000;
+                const pollInterval = 3000; // 3 secondes pour moins surcharger le serveur
 
                 for (let i = 0; i < maxAttempts; i++) {
                     await new Promise(resolve => setTimeout(resolve, pollInterval));
