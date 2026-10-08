@@ -13,6 +13,9 @@
         .api-status.ready { color: #10b981; }
         .api-status.missing { color: #ef4444; }
     </style>
+    <script>
+        window.CP.PenTimer.MAX_TIME_IN_LOOP_WO_EXIT = Number.POSITIVE_INFINITY;
+    </script>
 </head>
 <body class="min-h-screen p-4 flex flex-col items-center">
 
@@ -23,13 +26,11 @@
 
     <main class="w-full max-w-md bg-white rounded-2xl p-5 shadow-xl border border-gray-100">
         
-        <!-- Info Box -->
         <div class="bg-pink-50 border-l-4 border-pink-500 p-4 mb-5 rounded-r-lg text-sm text-gray-700">
             <p class="font-semibold mb-1">Comment ça marche :</p>
             <p>Écrivez ce que vous voulez, ajoutez <strong>1 photo</strong>, et l'IA génère la vidéo correspondante.</p>
         </div>
 
-        <!-- API Key Section -->
         <div class="mb-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
             <div class="flex flex-col gap-3">
                 <input type="password" id="apiKeyInput" placeholder="Collez votre clé API ici (sk-...)" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-pink-500"/>
@@ -42,7 +43,6 @@
             </div>
         </div>
 
-        <!-- Stats & Anti-Sleep -->
         <div class="flex justify-between items-center mb-5 text-xs bg-gray-50 p-3 rounded-lg">
             <div class="flex items-center gap-2 text-gray-600">
                 <span>📊 Vitesse : en attente</span>
@@ -57,32 +57,27 @@
             </div>
         </div>
 
-        <!-- Champ de Prompt -->
         <div class="mb-5">
             <label class="block text-sm font-medium text-gray-700 mb-2">✍️ Votre description (Prompt)</label>
-            <textarea id="promptInput" rows="3" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-pink-500 resize-none" placeholder="Ex: Le personnage marche devant une Lamborghini rose, cinématique, 4k, synchro labiale...">Le personnage marche devant une Lamborghini rose personnalisée, cinématique, 4k, synchro labiale naturelle</textarea>
+            <textarea id="promptInput" rows="3" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-pink-500 resize-none" placeholder="Ex: Le personnage marche devant une Lamborghini rose, cinématique, 4k, synchro labiale...">En utilisant <Picture 1> comme référence pour le personnage, génère une vidéo cinématique où il marche devant une Lamborghini rose personnalisée, avec une synchronisation labiale naturelle.</textarea>
         </div>
 
-        <!-- Photo Upload -->
         <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-xl p-8 mb-5 text-center cursor-pointer hover:border-pink-400 transition-colors">
             <input type="file" id="photoInput" accept="image/*" class="hidden"/>
             <div class="text-4xl text-gray-400 mb-2">+</div>
             <p class="text-sm text-gray-500">Ajoutez votre photo ici</p>
         </div>
 
-        <!-- Preview -->
         <div id="previewArea" class="hidden mb-5">
             <div class="video-container">
                 <img id="previewImage" class="w-full h-full object-cover opacity-90" />
             </div>
         </div>
 
-        <!-- Generate Button -->
         <button id="generateBtn" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:from-pink-500 hover:to-purple-500 transition-all shadow-lg shadow-pink-500/30 disabled:opacity-50 disabled:cursor-not-allowed">
             🚀 Générer la vidéo
         </button>
 
-        <!-- Status Area -->
         <div id="statusArea" class="mt-5 text-center hidden">
             <div class="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden mb-2">
                 <div class="loading-progress" id="progressBar"></div>
@@ -90,7 +85,6 @@
             <p id="statusText" class="text-sm text-gray-500 animate-pulse">Initialisation...</p>
         </div>
 
-        <!-- Result Area -->
         <div id="resultArea" class="mt-5 hidden">
             <div class="video-container">
                 <video id="resultVideo" controls autoplay loop class="w-full h-full object-cover"></video>
@@ -119,8 +113,8 @@
         const wakeLockToggle = document.getElementById('wakeLockToggle');
 
         let wakeLock = null;
-        let currentImageFile = null;
         let currentImageBase64 = null;
+        let isGenerating = false;
 
         // --- 1. Gestion de la Clé API ---
         function loadApiKey() {
@@ -183,7 +177,6 @@
         photoInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                currentImageFile = file;
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     currentImageBase64 = event.target.result;
@@ -213,7 +206,12 @@
                 alert("Veuillez écrire une description (prompt) pour la vidéo.");
                 return;
             }
+            if (isGenerating) {
+                alert("Une génération est déjà en cours. Veuillez patienter.");
+                return;
+            }
 
+            isGenerating = true;
             generateBtn.disabled = true;
             statusArea.classList.remove('hidden');
             resultArea.classList.add('hidden');
@@ -233,29 +231,29 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'agnes-video-2.5',
+                        model: 'agnes-video-2.5-flash',
                         prompt: userPrompt,
-                        image: currentImageBase64,
                         seconds: '5',
-                        mode: 'ti2vid',
+                        mode: 'reference',
                         size: '720P',
-                        aspect_ratio: '9:16'
+                        aspect_ratio: '9:16',
+                        images: [currentImageBase64]
                     })
                 });
 
                 if (!createResponse.ok) {
+                    const errorData = await createResponse.json().catch(() => ({}));
                     if (createResponse.status === 429) {
                         throw new Error("Trop de requêtes. Veuillez patienter 62 secondes.");
                     } else if (createResponse.status === 503) {
                         throw new Error("Serveur Agnes occupé. Réessayez plus tard.");
                     } else {
-                        const errorData = await createResponse.json().catch(() => ({}));
                         throw new Error(errorData.message || `Erreur (${createResponse.status})`);
                     }
                 }
 
                 const createData = await createResponse.json();
-                const videoId = createData.video_id || createData.id || createData.task_id;
+                const videoId = createData.video_id || createData.id;
 
                 if (!videoId) {
                     throw new Error("L'API n'a pas renvoyé d'identifiant de vidéo.");
@@ -268,19 +266,18 @@
                 progressBar.style.width = '30%';
 
                 let videoUrl = null;
-                const maxAttempts = 60; // 60 tentatives * 2 secondes = 2 minutes max
-                const pollInterval = 2000; // 2 secondes entre chaque tentative
+                const maxAttempts = 60;
+                const pollInterval = 2000;
 
                 for (let i = 0; i < maxAttempts; i++) {
                     await new Promise(resolve => setTimeout(resolve, pollInterval));
 
-                    // Mise à jour de la barre de progression
                     const progress = Math.min(30 + (i / maxAttempts) * 60, 90);
                     progressBar.style.width = `${progress}%`;
                     statusText.innerText = `Génération en cours... (${i + 1}/${maxAttempts})`;
 
                     const statusResponse = await fetch(
-                        `https://apihub.agnes-ai.com/agnesapi?video_id=${videoId}&model_name=agnes-video-2.5`,
+                        `https://apihub.agnes-ai.com/agnesapi?video_id=${videoId}&model_name=agnes-video-2.5-flash`,
                         {
                             headers: {
                                 'Authorization': `Bearer ${apiKey}`
@@ -290,21 +287,19 @@
 
                     if (!statusResponse.ok) {
                         console.warn(`Erreur lors de l'interrogation (tentative ${i + 1}):`, statusResponse.status);
-                        continue; // On continue à essayer
+                        continue;
                     }
 
                     const statusData = await statusResponse.json();
                     console.log('Statut:', statusData);
 
-                    // Vérifier si la vidéo est prête
-                    if (statusData.status === 'completed' || statusData.status === 'succeeded' || statusData.url || statusData.video_url) {
-                        videoUrl = statusData.url || statusData.video_url;
+                    if (statusData.status === 'completed' && statusData.url) {
+                        videoUrl = statusData.url;
                         break;
                     }
 
-                    // Vérifier si la génération a échoué
                     if (statusData.status === 'failed') {
-                        throw new Error(statusData.error || "La génération vidéo a échoué côté serveur.");
+                        throw new Error(statusData.error?.message || "La génération vidéo a échoué côté serveur.");
                     }
                 }
 
@@ -325,6 +320,7 @@
                 console.error(error);
                 progressBar.style.width = '0%';
             } finally {
+                isGenerating = false;
                 releaseWakeLock();
                 generateBtn.disabled = false;
                 statusArea.classList.add('hidden');
