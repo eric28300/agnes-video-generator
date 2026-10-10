@@ -58,14 +58,11 @@ button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-col
 
 <script>
 /* ═════════════════════════════════════════════════════════════════════
-   CONFIG + PROXY VERCEL
-   ⚠️ REMPLACE "TON-URL-VERCEL" PAR TON VRAI SOUS-DOMAINE VERCEL
+   PROXY VERCEL
    ═════════════════════════════════════════════════════════════════════ */
 const AGNES_API='https://apihub.agnes-ai.com/v1';
 const AGNES_POLL='https://apihub.agnes-ai.com/agnesapi';
-
-// ⚠️ MODIFIE CETTE LIGNE avec ton URL Vercel
-const PROXY='https://TON-URL-VERCEL.vercel.app/api/proxy?url=';
+const PROXY='https://agnes-video-generator-eight.vercel.app/api/proxy?url=';
 const PX=u=>PROXY+encodeURIComponent(u);
 
 const IMG='agnes-image-2.5-flash',VID='agnes-video-2.5-flash';
@@ -165,7 +162,7 @@ function toData(u){
 function mkImg(prompt,refUris,ratio){
   const body={model:IMG,prompt:san(prompt),n:1,size:'1K',ratio:ratio||P.ratio,extra_body:{response_format:'url'}};
   if(refUris&&refUris.length)body.extra_body.image=refUris.filter(Boolean).slice(0,4);
-  return call('img',PX(AGNES_API+'/images/generations'),body,3).then(r=>r.json()).then(d=>{
+  return call('img',API+'/images/generations',body,3).then(r=>r.json()).then(d=>{
     const it=d.data&&d.data[0];
     const u=it&&(it.url||(it.b64_json&&'data:image/png;base64,'+it.b64_json));
     if(!u)throw new Error('pas d\'image reçue');
@@ -261,7 +258,7 @@ V[1].cfg=()=>'<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+guide('👉 Ch
   foot(btn('go','← Précédent','','data-n="0"'),nextBtn('go','Générer les images',P.clips.length?'data-n="2"':'disabled data-off="1"'))+'</div>';
 V[2].cfg=()=>'<div class="hero">'+hd(3,'Prêt à générer les <b>images</b>')+guide('✓ Clique sur le bouton pour lancer la création des images.')+'<div class="rw">'+btn('startimg','✦ Lancer la génération','big')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'))+'</div>';
 V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+guide('✓ Vérifie-les, régénère si besoin, puis passe aux vidéos.','go')+'<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'),nextBtn('go','Passer aux vidéos','data-n="3"'))+'</div>';
-V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">Passage par proxy Vercel (serverless). 1 clip à la fois, 800ms entre chaque essai.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
+V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">Proxy Vercel actif. 1 clip à la fois, 800ms entre chaque essai. 16 combinaisons testées.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
 
 function view(){if(TASK)return workView();const s=P.sub[page]||'cfg';const v=V[page];const fn=v[s]||v.cfg;return fn?fn():'<div class="hero"><div class="guide er">Vue introuvable</div></div>'}
 function render(keep){
