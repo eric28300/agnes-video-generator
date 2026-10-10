@@ -59,7 +59,7 @@ button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-col
 <script>
 const AGNES_API='https://apihub.agnes-ai.com/v1';
 const AGNES_POLL='https://apihub.agnes-ai.com/agnesapi';
-const PROXY='https://agnes-video-generator-eight.vercel.app/api/proxy?url=';
+const PROXY='https://agnes-proxy-phi.vercel.app/api/proxy?url=';
 const PX=u=>PROXY+encodeURIComponent(u);
 
 const IMG='agnes-image-2.5-flash',VID='agnes-video-2.5-flash';
@@ -440,7 +440,7 @@ document.addEventListener('click',async e=>{
   if(a=='delsess'){if(!confirm('Supprimer ?'))return;await dbDel('clips',id);if(P.id==id){setP(newP());page=KEYS.list.length?1:0;render()}sessions()}
 });
 
-function resume(){P.clips.forEach(c=>{if(c.vst=='run'&&c.task){if(KEYS.list.some(k=>k.k==c.task.k))poll(c);else c.vst='wait'}});qui()}
+function resume(){P.clips.forEach(c=>{if(c.vst=='run'&&c.task){if(KEYS.list.some(k=>k.k==c.task.key))poll(c);else c.vst='wait'}});qui()}
 (async()=>{
   try{db=await Promise.race([openDB(),new Promise((_,rj)=>setTimeout(()=>rj(new Error('délai')),3000))])}catch(e){db=null;fall(e)}
   try{
