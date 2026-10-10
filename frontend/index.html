@@ -58,8 +58,7 @@ button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-col
 
 <script>
 const API='https://apihub.agnes-ai.com/v1',POLL='https://apihub.agnes-ai.com/agnesapi';
-const IMG='agnes-image-2.5-flash',VID={free:'agnes-video-2.5-flash',plan:'agnes-video-2.5-flash'};
-const VID_TRIES=['agnes-video-2.5-flash','agnes-video-v2.5','agnes-video','agnes-video-pro','agnes-video-v2.0','agnes-video-v3.0'];
+const IMG='agnes-image-2.5-flash',VID='agnes-video-2.5-flash';
 const RPM={free:{img:10,vid:1},plan:{img:100,vid:5}};
 const STEPS=['Clés','Prompts','Images','Vidéos'];
 const BACK=[3,6,12,24,48,96];
@@ -189,7 +188,7 @@ const foot=(prev,next)=>'<div class="ft">'+(prev||'<span></span>')+(next||'')+'<
 const nextBtn=(a,l,x)=>'<button class="big" id="nx" data-a="'+a+'" data-lbl="'+esc(l)+'" '+(x||'')+'>'+l+' →</button>';
 function syncNext(){const b=$('#nx');if(!b)return;const bz=anyBusy();b.disabled=bz||b.dataset.off=='1';b.textContent=bz?'Images en cours…':b.dataset.lbl+' →'}
 const imBox=(o,r)=>'<div class="im" style="aspect-ratio:'+(r||AR())+'">'+(o.img?'<img src="'+esc(ref(o.img))+'" alt="">':'<span>'+(o.busy?'création…':'pas d\'image')+'</span>')+(o.busy?'<i class="sp"></i>':'')+'</div>';
-const clipCard=(c,i)=>'<div class="cd" id="c-'+c.id+'"><div class="lab">Clip '+(i+1)+(c._model?' · '+esc(c._model):'')+'</div>'+imBox(c)+
+const clipCard=(c,i)=>'<div class="cd" id="c-'+c.id+'"><div class="lab">Clip '+(i+1)+'</div>'+imBox(c)+
   '<textarea data-f="prompt" data-id="'+c.id+'" rows="5" placeholder="Décris ton visuel ASMR…" '+(c.busy?'disabled':'')+'>'+esc(c.prompt)+'</textarea>'+
   '<div class="rw">'+btn('genimg','↻ Générer l\'image','sm','data-id="'+c.id+'" '+(c.busy?'disabled':''))+
   '<label class="sm btn" style="cursor:pointer">⬆ Photo<input type="file" accept="image/*" hidden data-up="'+c.id+'"></label>'+
@@ -299,7 +298,7 @@ V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+
 
 V[3].cfg=()=>{
   return '<div class="hero">'+hd(4,'Les <b>vidéos</b>')+
-  '<p class="sub">Chaque image devient une vidéo via Agnès. L\'app essaie plusieurs modèles automatiquement jusqu\'à en trouver un qui marche avec ta clé. <b>Garde cet onglet ouvert.</b></p>'+
+  '<p class="sub">Chaque image devient une vidéo via Agnès. L\'app utilise le modèle <b>agnes-video-2.5-flash</b> en mode <b>keyframe</b>. <b>Garde cet onglet ouvert.</b></p>'+
   '<div class="cd" id="qp" style="margin:12px 0"></div>'+
   '<div class="kp" id="kp"></div>'+
   '<div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+
@@ -362,11 +361,16 @@ function sat(){Q.st='full';Q.next=Date.now()+BACK[Math.min(Q.step,BACK.length-1)
 async function launch(c){
   const o=await slot('vid'),free=KEYS.plan=='free';
   const fr=c.img.u&&c.img.u.indexOf('data:')!==0?c.img.u:ref(c.img);
-  const modelName=c._model||(free?VID_TRIES[0]:VID.plan);
-  // Body avec le champ MODE (obligatoire) + champs minimaux
-  const body=free
-    ?{model:modelName,prompt:vp(c),mode:'image_to_video',aspect_ratio:P.ratio,image:fr}
-    :{model:modelName,prompt:vp(c),mode:'keyframe',aspect_ratio:P.ratio,first_frame:fr};
+  const modelName=free?VID:'agnes-video-2.5';
+  const body={
+    model:modelName,
+    prompt:vp(c),
+    mode:'keyframe',
+    first_frame:fr,
+    seconds:'5',
+    size:'720P',
+    aspect_ratio:P.ratio
+  };
   c.vst='run';c.err='';refresh(c.id);
   let r;
   try{r=await fetch(API+'/videos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)})}
@@ -374,26 +378,10 @@ async function launch(c){
   if(!r.ok){
     const t=(await r.text().catch(()=>'')).slice(0,300);
     log('er','vidéo HTTP '+r.status+' '+t);
-    if((r.status==503||r.status==404||r.status==400)&&t.indexOf('model_not_found')>=0&&free){
-      const idx=VID_TRIES.indexOf(modelName);
-      if(idx>=0&&idx<VID_TRIES.length-1){
-        c._model=VID_TRIES[idx+1];
-        log('wr','modèle '+modelName+' absent → test '+c._model);
-        c.vst='wait';refresh(c.id);save();return;
-      }
-      log('er','aucun modèle vidéo trouvé pour ta clé');
-      c.vst='er';c.err='Aucun modèle vidéo accessible avec ta clé';refresh(c.id);return;
-    }
-    if(r.status==400&&t.indexOf('FORBIDDEN')>=0){
+    if(r.status==400){
       const match=t.match(/"MESSAGE":"([^"]+)"/);
-      const msg=match?match[1]:'champ interdit';
-      log('er','champ interdit : '+msg);
-      c.vst='er';c.err=msg.slice(0,100);refresh(c.id);return;
-    }
-    if(r.status==400&&t.indexOf('REQUIRED')>=0){
-      const match=t.match(/"MESSAGE":"([^"]+)"/);
-      const msg=match?match[1]:'champ requis';
-      log('er','champ requis : '+msg);
+      const msg=match?match[1]:'erreur 400';
+      log('er','message : '+msg);
       c.vst='er';c.err=msg.slice(0,100);refresh(c.id);return;
     }
     if(r.status==503||r.status==429){
@@ -411,15 +399,15 @@ async function launch(c){
   c.task={id:id,inner:inner,k:o.k,model:modelName};
   Q.st='run';Q.step=0;
   log('ok','vidéo envoyée · modèle '+modelName+' · clé …'+o.k.slice(-4));
-  toast('🎬 Modèle accepté : '+modelName);
+  toast('🎬 Vidéo en cours : '+modelName);
   save();qui();
   poll(c);
 }
 async function poll(c){
-  const t=c.task,model=t.model||VID[KEYS.plan],end=Date.now()+30*60000;
+  const t=c.task,model=t.model||VID,end=Date.now()+30*60000;
   let n=0,miss=0;const key=t.k;
   try{
-    await sleep(KEYS.plan=='free'?30000:8000);
+    await sleep(30000);
     while(Date.now()<end&&P){
       const ids=[t.id];if(t.inner&&t.inner!=t.id)ids.push(t.inner);
       const iv=Math.min(20000,6000+n*1500);n++;
@@ -467,12 +455,12 @@ setInterval(function(){
 async function wake(){try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}}
 function qstart(){
   if(!P.clips.some(c=>c.img))return toast('Il faut d\'abord des images');
-  P.clips.forEach(c=>{if(c.vst=='er'){c.vst='wait';c.err='';c._model=null}});
+  P.clips.forEach(c=>{if(c.vst=='er'){c.vst='wait';c.err=''}});
   Q.on=true;
   if(Q.st=='paused'||Q.st=='idle')Q.st='run';
   if(Q.st!='full')Q.next=0;
   wake();save();qui();
-  log('in','production vidéo lancée · recherche du bon modèle');
+  log('in','production vidéo lancée · modèle keyframe');
 }
 
 const OK_DURING=['con','stoptask','retrytask','canceltask'];
