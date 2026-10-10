@@ -1,394 +1,668 @@
 <!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Star en Voiture — Ta photo, ton prompt</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #f8f9fa; color: #1a1a1a; font-family: 'Inter', sans-serif; }
-        .video-container { aspect-ratio: 9/16; background: #000; border-radius: 16px; overflow: hidden; position: relative; width: 100%; max-width: 300px; margin: 0 auto; }
-        .loading-progress { height: 100%; background: linear-gradient(90deg, #ff00ff, #00ffff); width: 0%; transition: width 0.5s; }
-        .api-status { font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
-        .api-status.ready { color: #10b981; }
-        .api-status.missing { color: #ef4444; }
-    </style>
-    <script>
-        if (window.CP && window.CP.PenTimer) {
-            window.CP.PenTimer.MAX_TIME_IN_LOOP_WO_EXIT = Number.POSITIVE_INFINITY;
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ASMR LOOP · Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a12;--p:#14141f;--ink:#e8e8f5;--dim:#7a7a94;--ln:#25253a;--a:#00d4ff;--b:#ff5a1f;--ok:#12b76a;--er:#e5383b;--m:'Share Tech Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:16px/1.5 Rajdhani,system-ui,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;padding-bottom:70px}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse at top,#1a1a2e 0%,#0a0a12 60%);opacity:1}
+header{position:sticky;top:0;z-index:20;background:rgba(10,10,18,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--ln);padding:10px 18px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.logo{font:800 20px Orbitron;letter-spacing:.1em}.logo b{color:var(--a)}.logo i{display:block;font:10px var(--m);letter-spacing:.3em;color:var(--dim);font-style:normal}
+#steps{display:flex;gap:4px;flex-wrap:wrap}
+.st{font:11px var(--m);letter-spacing:.06em;text-transform:uppercase;padding:5px 9px;border:1px solid var(--ln);background:#14141f;color:var(--dim);cursor:pointer}
+.st.ok{color:var(--ink);border-color:var(--a)}.st.on{background:var(--a);color:#000;border-color:var(--a)}.st:disabled{opacity:.4;cursor:not-allowed}
+.hb{display:flex;gap:6px;align-items:center}
+main{max-width:1100px;margin:0 auto;padding:22px 16px}
+.hero{background:var(--p);border:1px solid var(--ln);padding:22px;margin-bottom:16px;position:relative;border-radius:8px}
+.lab{font:11px var(--m);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+h2{font:600 26px Orbitron;letter-spacing:.04em;margin:6px 0 8px}h2 b{color:var(--a)}h3{font:600 15px Orbitron;letter-spacing:.06em;margin:16px 0 8px}
+p.sub{color:var(--dim);margin-bottom:12px;max-width:780px}
+.guide{display:flex;gap:12px;align-items:center;border:1px solid var(--a);background:rgba(0,212,255,.08);padding:12px 14px;margin:10px 0 16px;border-radius:6px;font-size:15px}
+.guide.go{border-color:var(--ok);background:rgba(18,183,106,.1)}.guide.er{border-color:var(--er);background:rgba(229,56,59,.1)}.guide.wt{border-color:var(--b);background:rgba(255,90,31,.08)}
+textarea,input[type=text],input[type=password],select{width:100%;font:13px var(--m);padding:10px;border:1px solid var(--ln);background:#0d0d18;color:var(--ink);outline:0;border-radius:5px}
+textarea:focus,input:focus,select:focus{border-color:var(--a)}textarea{resize:vertical;min-height:80px;margin:4px 0}
+label.f{display:block;margin:8px 0}label.f span{display:block;margin-bottom:4px}
+button,.btn{font:600 12px var(--m);letter-spacing:.1em;text-transform:uppercase;padding:10px 16px;border:1px solid var(--ink);background:#14141f;color:var(--ink);cursor:pointer;border-radius:5px;display:inline-block}
+button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-color:var(--a)}button:disabled{opacity:.35;cursor:not-allowed}
+.big{background:var(--a);border-color:var(--a);color:#000;padding:14px 26px;font-size:14px;letter-spacing:.16em}.big:hover:not(:disabled){background:#00b8e0;border-color:#00b8e0}
+.sm{padding:6px 11px;font-size:10px}
+.ft{display:flex;justify-content:space-between;gap:10px;margin-top:20px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}.chip{font:11px var(--m);padding:3px 8px;border:1px solid var(--ok);color:var(--ok);border-radius:20px}.chip.off{border-color:var(--er);color:var(--er)}.chip.cd{border-color:var(--b);color:var(--b)}
+.gc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.gc button.sel{background:var(--a);border-color:var(--a);color:#000}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.cd{border:1px solid var(--ln);background:#14141f;padding:12px;position:relative;border-radius:8px}
+.im{position:relative;background:#0d0d18;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:8px;font:11px var(--m);color:var(--dim);border-radius:6px}
+.im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.sp,.sp2{border:2px solid var(--a);border-top-color:transparent;border-radius:50%;animation:r 1s linear infinite}.sp{position:absolute;width:26px;height:26px;z-index:2}.sp2{display:inline-block;width:16px;height:16px;flex:none}@keyframes r{to{transform:rotate(360deg)}}
+.ip{background:#0d0d18;border:1px solid var(--ln);padding:10px;margin:8px 0;border-radius:6px}.rw{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;align-items:center}
+.bar{height:6px;background:var(--ln);margin:12px 0;border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--a);width:0;transition:width .4s}
+.feed{margin:10px 0}.fi{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--ln);font-size:14px}.fi.ok{color:var(--ok)}.fi.er{color:var(--er)}.fi em{margin-left:auto;font:11px var(--m);color:var(--dim);font-style:normal}.fi .ic{width:18px;text-align:center;flex:none}
+.tl{border:1px solid var(--ln);background:#14141f;border-radius:8px;overflow:hidden}
+.tl.ok{border-color:var(--ok)}.tl.run{border-color:var(--a)}.tl.er{border-color:var(--er)}
+.th{position:relative;background:#0d0d18;overflow:hidden}
+.th img,.th video{width:100%;height:100%;display:block;object-fit:cover}
+.tg{position:absolute;top:6px;left:6px;z-index:2;font:10px var(--m);background:rgba(0,0,0,.7);color:#fff;padding:2px 6px;border-radius:3px}
+.tx{font-size:12px;padding:6px 10px;color:var(--dim);font-family:var(--m);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#con{position:fixed;left:0;right:0;bottom:0;height:34vh;z-index:50;background:#080810;color:#7dd3fc;transform:translateY(100%);transition:transform .25s;display:flex;flex-direction:column;border-top:1px solid var(--ln)}#con.on{transform:none}
+#lb{flex:1;overflow:auto;padding:8px 12px;font:12px/1.5 var(--m)}.lg.er{color:#ff8a8a}.lg.wr{color:#ffc477}.lg.ok{color:#7dffb5}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:6px;align-items:center}#toast div{background:#14141f;color:#fff;font:12px var(--m);padding:8px 14px;border:1px solid var(--a);border-radius:5px}
+@media(max-width:700px){h2{font-size:20px}.st{padding:4px 6px;font-size:9px}}
+</style></head><body>
+<header><div class="logo">ASMR<b> LOOP</b><i>VISUEL · SANS VOIX · SANS VISAGE</i></div><nav id="steps"></nav>
+<div class="hb"><span class="chip" id="qchip"></span><button class="sm" data-a="sess">Mes clips</button><button class="sm" data-a="con">Journal</button></div></header>
+<main id="main"></main>
+<div id="con"><div style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #1e1e2e;font:12px var(--m)"><span>JOURNAL TECHNIQUE</span><button class="sm" data-a="con" style="color:#7dd3fc;border-color:#2a2a3e">✕</button></div><div id="lb"></div></div>
+<div id="toast"></div>
+
+<script>
+/* ═════════════════════════════════════════════════════════════════════
+   CONFIG
+   ═════════════════════════════════════════════════════════════════════ */
+const API='https://apihub.agnes-ai.com/v1',POLL='https://apihub.agnes-ai.com/agnesapi';
+const IMG='agnes-image-2.5-flash',VID={free:'agnes-video-v2.0',plan:'agnes-video-2.5-flash'};
+const RPM={free:{img:10,vid:1},plan:{img:100,vid:5}};
+const STEPS=['Clés','Prompts','Images','Vidéos'];
+const BACK=[3,6,12,24,48,96];
+
+/* Presets ASMR prêts à l'emploi */
+const PRESETS=[
+ {n:'Sablier liquide',p:"Plan macro ultra-réaliste, objectif 100mm, d'un sablier en verre noir mat posé sur une surface en obsidienne polie. À l'intérieur, un liquide visqueux et lumineux composé de filaments cyan et or flotte en apesanteur. Une tige en bois brut descend lentement et perce la paroi du sablier. Le verre se fissure en fractales lumineuses, libérant une poussière d'étoiles qui tourbillonne. Éclairage volumétrique doux, contraste élevé, fond noir profond. Style ASMR macro, ultra-détaillé, cinématographique, 8K. Physique satisfaisante, mouvement lent et hypnotique. Caméra : plan fixe."},
+ {n:'Fraise en verre',p:"Plan macro ultra-réaliste, objectif 100mm, d'une fraise en verre transparent posée sur une surface en verre noir polie. Un couteau en argent descend lentement et tranche la fraise. Une fractale de lumière jaillit de l'intérieur. Les morceaux tombent au ralenti, révélant un cœur de verre liquide incandescent. Éclairage volumétrique doux, fond noir profond, reflets brillants. Style ASMR macro, 8K. Physique satisfaisante, mouvement lent. Caméra : plan fixe."},
+ {n:'Savon glacé',p:"Plan macro ultra-réaliste d'un savon artisanal aux couches pastel (rose, bleu, blanc) posé sur du marbre blanc. Texture glacée et translucide. Un couteau en céramique blanche coupe une fine tranche, lame glisse sans effort. Vapeur froide s'échappe. Éclairage froid venant de la gauche, fond blanc cassé. Style ASMR macro, 8K. Physique satisfaisante, coupe lisse."},
+ {n:'Miel doré',p:"Plan macro ultra-réaliste d'une cuillère en argent plongeant dans un pot de miel doré et visqueux. Le miel coule lentement en formant un ruban brillant et translucide. La cuillère soulève une portion qui s'étire sans se rompre. Reflets ambrés dansent. Éclairage chaud latéral, fond noir profond. Style ASMR macro, 8K. Mouvement lent et hypnotique."},
+ {n:'Glace cristal',p:"Plan macro ultra-réaliste d'un bloc de glace transparente posé sur une surface en ardoise noire. Un pic en métal descend lentement et fracture la glace. Fissures cristallines se propagent en fractales lumineuses. Éclats de glace tombent au ralenti en scintillant. Éclairage froid venant du haut, fond noir, reflets bleutés. Style ASMR macro, 8K."},
+ {n:'Métal fondu',p:"Plan macro ultra-réaliste d'une pièce de métal argenté posée sur céramique noire. Un chalumeau invisible chauffe le métal jusqu'au rouge incandescent, puis le fait fondre lentement. Gouttes de métal liquide tombent au ralenti en brillant. Éclairage chaud orangé, fond noir, contraste élevé. Style ASMR macro, 8K."},
+ {n:'Encre noire',p:"Plan macro ultra-réaliste d'une goutte d'encre noire tombant dans un verre d'eau claire. L'encre se disperse lentement en volutes hypnotiques qui tournent et se mélangent. Éclairage doux venant de l'arrière, fond blanc lumineux, contraste élevé. Style ASMR macro, 8K. Dispersion fluide et lente."},
+ {n:'Caviar opale',p:"Plan macro ultra-réaliste d'une cuillère en argent vintage plongeant dans un caviar scintillant composé de minuscules sphères d'opale noire iridescente. Les sphères roulent les unes sur les autres. Certaines éclatent doucement en libérant une poussière d'or. Éclairage latéral chaud, fond noir velouté, reflets multicolores. Style ASMR macro, 8K."},
+ {n:'Fleur de verre',p:"Plan macro ultra-réaliste d'une fleur entièrement en verre transparent posée sur une surface en miroir. Un pétale se détache lentement et tombe au ralenti en tournant sur lui-même. La lumière traverse le verre en créant des arcs-en-ciel. Éclairage volumétrique doux, fond noir, reflets prismatiques. Style ASMR macro, 8K."},
+ {n:'Pierre précieuse',p:"Plan macro ultra-réaliste d'une pierre précieuse brute posée sur velours noir. Un burin en métal descend lentement et fend la pierre. Une lumière intense jaillit de l'intérieur, révélant des cristaux multicolores. Éclats brillent au ralenti. Éclairage froid directionnel, fond noir, contraste élevé. Style ASMR macro, 8K."},
+ {n:'Sable cinétique',p:"Plan macro ultra-réaliste d'une main gantée de blanc tenant un couteau en métal et coupant un bloc de sable cinétique bleu turquoise. Le sable a une texture dense et lisse. Le couteau tranche en produisant une coupe parfaitement nette. Le bloc se sépare en deux. Éclairage doux diffus, fond gris clair. Style ASMR macro, 8K."}
+];
+
+/* ═════════════════════════════════════════════════════════════════════
+   UTILS
+   ═════════════════════════════════════════════════════════════════════ */
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const san=t=>String(t==null?'':t).replace(/[‘’]/g,"'").replace(/[“”«»]/g,'"').replace(/[–—]/g,'-').replace(/…/g,'...').replace(/[\u00a0\u202f]/g,' ');
+
+/* ═════════════════════════════════════════════════════════════════════
+   STATE
+   ═════════════════════════════════════════════════════════════════════ */
+let db,P=null,Q=null,page=0,F=1,TASK=null;
+const KEYS={list:[],plan:'free'};
+const AR=()=>(P?P.ratio:'9:16').replace(':','/');
+const ref=i=>i&&(i.d||i.u);
+const mkKey=k=>({k,img:0,vid:0,cool:0,bad:0,off:false});
+
+/* ═════════════════════════════════════════════════════════════════════
+   STOCKAGE
+   ═════════════════════════════════════════════════════════════════════ */
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('asmr_loop_v1',1);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('clips'))d.createObjectStore('clips',{keyPath:'id'});if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'})}})}
+const tx=(s,m,f)=>new Promise((res,rej)=>{try{const r=f(db.transaction(s,m).objectStore(s));r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});
+let mode='idb';const mem={clips:{},config:{}},lsK=(s,k)=>'al1_'+s+'_'+k;
+function fall(e){if(mode=='idb'){mode='ls';log('wr','IndexedDB indisponible → stockage de secours');toast('Stockage navigateur limité')}}
+async function dbGet(s,k){if(db&&mode=='idb'){try{return await tx(s,'readonly',o=>o.get(k))}catch(e){fall(e)}}try{const v=localStorage.getItem(lsK(s,k));if(v!=null)return JSON.parse(v)}catch(e){}return mem[s][k]}
+async function dbPut(s,v){const k=v.key||v.id;mem[s][k]=v;if(db&&mode=='idb'){try{return await tx(s,'readwrite',o=>o.put(v))}catch(e){fall(e)}}try{localStorage.setItem(lsK(s,k),JSON.stringify(v))}catch(e){}}
+async function dbDel(s,k){delete mem[s][k];if(db&&mode=='idb'){try{return await tx(s,'readwrite',o=>o.delete(k))}catch(e){fall(e)}}try{localStorage.removeItem(lsK(s,k))}catch(e){}}
+async function dbAll(s){if(db&&mode=='idb'){try{return await tx(s,'readonly',o=>o.getAll())}catch(e){fall(e)}}const o=Object.assign({},mem[s]);try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n.startsWith(lsK(s,''))){const v=JSON.parse(localStorage.getItem(n));o[v.key||v.id]=v}}}catch(e){}return Object.values(o)}
+let svT;function save(){if(!P)return;clearTimeout(svT);svT=setTimeout(()=>{P.upd=Date.now();dbPut('clips',P).catch(e=>log('er','sauvegarde : '+e.message))},350)}
+
+/* ═════════════════════════════════════════════════════════════════════
+   LOG / TOAST
+   ═════════════════════════════════════════════════════════════════════ */
+function log(l,m){const d=document.createElement('div');d.className='lg '+l;d.textContent=new Date().toLocaleTimeString('fr-FR')+'  '+m;const b=$('#lb');if(!b)return;b.appendChild(d);while(b.children.length>400)b.firstChild.remove();b.scrollTop=b.scrollHeight}
+function toast(m){const d=document.createElement('div');d.textContent=m;$('#toast').appendChild(d);setTimeout(()=>d.remove(),4200)}
+
+/* ═════════════════════════════════════════════════════════════════════
+   PLANIFICATEUR MULTI-CLÉS
+   ═════════════════════════════════════════════════════════════════════ */
+async function slot(kind){
+  for(;;){
+    if(TASK&&TASK.stop)throw new Error('stop');
+    const live=KEYS.list.filter(o=>!o.off);
+    if(!live.length)throw Object.assign(new Error('Aucune clé active'),{fatal:true});
+    const iv=60000/RPM[KEYS.plan][kind]*1.15*F,now=Date.now();
+    let best=null,bt=1e18;
+    for(const o of live){const t=Math.max(o[kind]||0,o.cool||0,now);if(t<bt){bt=t;best=o}}
+    if(bt>now){await sleep(Math.min(bt-now,400));continue}
+    if(best.cool>Date.now())continue;
+    best[kind]=now+iv;
+    return best;
+  }
+}
+async function call(kind,url,body,tries){
+  let err;
+  for(let a=0;a<tries;a++){
+    const o=await slot(kind);
+    try{
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)});
+      if(r.ok){o.bad=0;F=Math.max(1,F*0.97);return r}
+      const t=(await r.text()).slice(0,200);log('er',kind+' HTTP '+r.status+' '+t);
+      if(r.status==429){o.cool=Date.now()+(parseInt(r.headers.get('Retry-After'))||25)*1000;F=Math.min(4,F*1.5);err=new Error('429');continue}
+      if(r.status==401||r.status==402||r.status==403){if(++o.bad>=2){o.off=true;log('wr','clé …'+o.k.slice(-4)+' désactivée')}err=new Error('HTTP '+r.status);continue}
+      if(r.status>=500||r.status==408){err=new Error('HTTP '+r.status);await sleep(2000*Math.pow(2,a));continue}
+      throw Object.assign(new Error('HTTP '+r.status+' '+t),{fatal:true});
+    }catch(e){if(e.fatal||e.message=='stop')throw e;err=e;await sleep(1500*(a+1))}
+  }
+  throw err||new Error('échec');
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   IMAGES
+   ═════════════════════════════════════════════════════════════════════ */
+function toData(u){
+  return new Promise(resolve=>{
+    if(!u)return resolve(null);
+    if(u.indexOf('data:')===0)return resolve(u);
+    fetch(u).then(r=>r.blob()).then(b=>{
+      const o=URL.createObjectURL(b),im=new Image();
+      im.onload=()=>{try{const s=Math.min(1,1024/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(o);resolve(c.toDataURL('image/jpeg',0.86))}catch(e){URL.revokeObjectURL(o);resolve(null)}};
+      im.onerror=()=>{URL.revokeObjectURL(o);resolve(null)};im.src=o;
+    }).catch(()=>resolve(null));
+  });
+}
+function mkImg(prompt,refUris,ratio){
+  const body={model:IMG,prompt:san(prompt),n:1,size:'1K',ratio:ratio||P.ratio,extra_body:{response_format:'url'}};
+  if(refUris&&refUris.length)body.extra_body.image=refUris.filter(Boolean).slice(0,4);
+  return call('img',API+'/images/generations',body,3).then(r=>r.json()).then(d=>{
+    const it=d.data&&d.data[0];
+    const u=it&&(it.url||(it.b64_json&&'data:image/png;base64,'+it.b64_json));
+    if(!u)throw new Error('pas d\'image reçue');
+    const img={u:u,d:u.indexOf('data:')===0?u:null};
+    if(!img.d){img._conv=toData(u).then(dd=>{img.d=dd||u;return img.d}).catch(()=>{img.d=u;return img.d})}
+    return img;
+  });
+}
+function ensureRef(img){
+  if(!img)return Promise.resolve(null);
+  if(img.d)return Promise.resolve(img.d);
+  if(img._conv)return img._conv;
+  img._conv=toData(img.u).then(dd=>{img.d=dd||img.u;return img.d}).catch(()=>{img.d=img.u;return img.d});
+  return img._conv;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   MODÈLE DE PROJET — simplifié pour ASMR
+   ═════════════════════════════════════════════════════════════════════ */
+const newP=()=>({
+  id:uid()+uid(),
+  created:Date.now(),
+  upd:Date.now(),
+  page:0,last:0,max:0,
+  ratio:'9:16',
+  clips:[],      // chaque clip = {id, prompt, img, video, vst, busy, err, task, seen}
+  nclips:3,
+  sub:{},
+  q:{step:0,next:0,st:'idle',on:false}
+});
+function setP(p){
+  P=p;
+  P.clips=P.clips||[];
+  P.sub=P.sub||{};
+  Q=P.q=P.q||{step:0,next:0,st:'idle',on:false};
+  P.clips.forEach(c=>{
+    c.busy=false;
+    if(c.vst=='run'&&!c.task)c.vst='wait';
+  });
+  dbPut('config',{key:'last',v:P.id});
+}
+const anyBusy=()=>P.clips.some(c=>c.busy);
+function find(id){
+  for(let i=0;i<P.clips.length;i++)if(P.clips[i].id==id)return{t:'c',o:P.clips[i],i:i};
+  return null;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   GÉNÉRATION D'IMAGE POUR UN CLIP
+   ═════════════════════════════════════════════════════════════════════ */
+async function genImg(id){
+  const f=find(id);
+  if(!f||f.o.busy)return;
+  const o=f.o;
+  o.busy=true;o.err='';refresh(id);
+  try{
+    o.img=await mkImg(o.prompt,null,P.ratio);
+  }catch(e){
+    if(e.message!='stop'){o.err='Échec : '+String(e.message).slice(0,80);log('er','image : '+e.message)}
+  }
+  o.busy=false;refresh(id);save();
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   AFFICHAGE
+   ═════════════════════════════════════════════════════════════════════ */
+const guide=(h,c)=>'<div class="guide '+(c||'')+'"><div>'+h+'</div></div>';
+const hd=(n,t)=>'<div class="lab">ÉTAPE '+n+' / 4</div><h2>'+t+'</h2>';
+const btn=(a,l,c,x)=>'<button class="'+(c||'')+'" data-a="'+a+'" '+(x||'')+'>'+l+'</button>';
+const foot=(prev,next)=>'<div class="ft">'+(prev||'<span></span>')+(next||'')+'</div>';
+const nextBtn=(a,l,x)=>'<button class="big" id="nx" data-a="'+a+'" data-lbl="'+esc(l)+'" '+(x||'')+'>'+l+' →</button>';
+function syncNext(){const b=$('#nx');if(!b)return;const bz=anyBusy();b.disabled=bz||b.dataset.off=='1';b.textContent=bz?'Images en cours…':b.dataset.lbl+' →'}
+const imBox=(o,r)=>'<div class="im" style="aspect-ratio:'+(r||AR())+'">'+(o.img?'<img src="'+esc(ref(o.img))+'" alt="">':'<span>'+(o.busy?'création…':'pas d\'image')+'</span>')+(o.busy?'<i class="sp"></i>':'')+'</div>';
+const clipCard=(c,i)=>'<div class="cd" id="c-'+c.id+'"><div class="lab">Clip '+(i+1)+'</div>'+imBox(c)+
+  '<textarea data-f="prompt" data-id="'+c.id+'" rows="5" placeholder="Décris ton visuel ASMR…" '+(c.busy?'disabled':'')+'>'+esc(c.prompt)+'</textarea>'+
+  '<div class="rw">'+btn('genimg','↻ Générer l\'image','sm','data-id="'+c.id+'" '+(c.busy?'disabled':''))+
+  '<label class="sm btn" style="cursor:pointer;padding:6px 11px;font:600 10px var(--m);letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--ink);border-radius:5px;background:#14141f;color:var(--ink)">⬆ Photo<input type="file" accept="image/*" hidden data-up="'+c.id+'"></label>'+
+  btn('delclip','🗑','sm','data-id="'+c.id+'" '+(c.busy?'disabled':''))+'</div>'+
+  (c.err?'<div class="lab" style="color:var(--er);margin-top:4px">'+esc(c.err)+'</div>':'')+'</div>';
+const tile=(c,i)=>'<div class="tl '+(c.vst||'wait')+'" id="t-'+c.id+'"><div class="th" style="aspect-ratio:'+AR()+'">'+
+  (c.video?'<video src="'+esc(c.video)+'" controls playsinline preload="metadata" data-id="'+c.id+'"></video>':c.img?'<img src="'+esc(ref(c.img))+'" alt="">':'')+
+  '<b class="tg">'+(i+1)+'</b></div><div class="tx">'+esc(c.prompt.slice(0,60))+'…</div></div>';
+const LBL={wait:'en attente',run:'en cours',ok:'prête',er:'échec'};
+function refresh(id){
+  const f=find(id);
+  if(!f)return;
+  const set=(p,h)=>{const a=document.getElementById(p+id);if(a){const t=document.createElement('div');t.innerHTML=h;a.replaceWith(t.firstElementChild)}};
+  if(f.t=='c')set('c-',clipCard(f.o,f.i));
+  if(page==3)stats();
+  syncNext();
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   TÂCHE
+   ═════════════════════════════════════════════════════════════════════ */
+function fd(t){const it={t:t,s:'run',at:Date.now()};TASK.items.push(it);paintFeed();return it}
+function fdDone(it,t){it.s='ok';if(t)it.t=t;paintFeed()}
+function paintFeed(){const e=$('#feed');if(!e||!TASK)return;const n=Date.now();e.innerHTML=TASK.items.map(i=>'<div class="fi '+i.s+'"><span class="ic">'+(i.s=='ok'?'✓':i.s=='er'?'✕':'<i class="sp2"></i>')+'</span><span>'+esc(i.t)+'</span>'+(i.s=='run'?'<em>'+Math.round((n-i.at)/1000)+' s</em>':'')+'</div>').join('')}
+function setPg(d,t){if(!TASK)return;TASK.pg=[d,t];pgb()}
+function pgb(){const b=$('#pgb');if(b&&TASK&&TASK.pg)b.style.width=Math.round(TASK.pg[0]/Math.max(1,TASK.pg[1])*100)+'%'}
+const chk=()=>{if(TASK&&TASK.stop)throw new Error('stop')};
+function workView(){
+  const T=TASK;
+  return '<div class="hero"><div class="lab">ÉTAPE '+(T.step+1)+' / 4 · EN COURS</div><h2>'+esc(T.title)+'</h2>'+
+    (T.err?'<div class="guide er"><b>Un problème est survenu :</b> '+esc(T.err)+'<div class="rw" style="margin-top:8px">'+btn('retrytask','Réessayer','big')+btn('canceltask','← Revenir')+'</div></div>'
+         :'<div class="guide wt"><i class="sp2"></i><div><b>L\'IA travaille.</b> Ne ferme pas cette page.<div class="lab">Temps écoulé : <span id="el">0 s</span></div></div></div>')+
+    '<div class="bar"><i id="pgb"></i></div>'+
+    '<div id="feed" class="feed"></div>'+
+    (T.err?'':'<div class="ft"><span></span>'+btn('stoptask','■ Arrêter')+'</div>')+'</div>';
+}
+async function task(step,title,fn,after){
+  if(TASK)return;
+  TASK={step:step,title:title,fn:fn,after:after,items:[],start:Date.now(),stop:false,err:null,pg:null};
+  page=step;
+  render();
+  try{await fn();chk()}
+  catch(e){
+    const T=TASK;
+    if(e.message=='stop'){TASK=null;toast('Arrêté');render();return}
+    T.items.forEach(i=>{if(i.s=='run')i.s='er'});
+    T.err=e.message;log('er',title+' : '+e.message);render();paintFeed();return;
+  }
+  TASK=null;after();
+}
+function retryTask(){const T=TASK;if(!T||!T.err)return;TASK=null;task(T.step,T.title,T.fn,T.after)}
+setInterval(()=>{if(!TASK||TASK.err)return;const e=$('#el');if(e)e.textContent=Math.round((Date.now()-TASK.start)/1000)+' s';paintFeed()},1000);
+
+/* ═════════════════════════════════════════════════════════════════════
+   NAVIGATION
+   ═════════════════════════════════════════════════════════════════════ */
+function go(n){if(TASK)return;if(page>0)P.last=page;page=n;render();onEnter()}
+function done(step,sub){P.sub[step]=sub;save();render()}
+function onEnter(){
+  if(TASK||!P)return;
+  const s=P.sub[page]||'cfg';
+  if(s!='cfg')return;
+  if(page==2)runImages();
+  // page 3 : l'utilisateur clique pour lancer les vidéos
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   PIPELINES
+   ═════════════════════════════════════════════════════════════════════ */
+function runImages(){
+  const todo=P.clips.filter(c=>!c.img);
+  if(!todo.length){done(2,'rev');return}
+  task(2,'Génération des images',async()=>{
+    const it=fd('Création des '+todo.length+' image(s)…');
+    setPg(0,todo.length);
+    let n=0;
+    await Promise.all(todo.map(async c=>{
+      await genImg(c.id);
+      n++;setPg(n,todo.length);
+      it.t='Création des images ('+n+'/'+todo.length+')…';
+      paintFeed();
+    }));
+    chk();
+    const miss=P.clips.filter(c=>!c.img);
+    if(miss.length){
+      it.t='Nouvel essai pour '+miss.length+' image(s)…';paintFeed();
+      await Promise.all(miss.map(c=>genImg(c.id)));
+      chk();
+    }
+    fdDone(it,P.clips.filter(c=>c.img).length+'/'+P.clips.length+' image(s) prête(s)');
+  },()=>done(2,'rev'));
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   VUES
+   ═════════════════════════════════════════════════════════════════════ */
+const V={0:{},1:{},2:{},3:{}};
+
+V[0].cfg=()=>'<div class="hero">'+hd(1,'Tes clés API <b>Agnès</b>')+
+  guide('👉 Colle tes clés Agnès (une par ligne). Avec plusieurs clés, tout va plus vite. Elles restent sur cet appareil.')+
+  '<textarea id="keys" rows="6" spellcheck="false" placeholder="sk-…&#10;sk-…">'+esc(KEYS.list.map(k=>k.k).join('\n'))+'</textarea>'+
+  '<label class="f"><span class="lab">Type de clés</span><select id="plan"><option value="free" '+(KEYS.plan=='free'?'selected':'')+'>Gratuites — vidéo v2.0</option><option value="plan" '+(KEYS.plan=='plan'?'selected':'')+'>Payantes — vidéo 720P</option></select></label>'+
+  '<div id="kl" class="chips"></div>'+
+  foot('',nextBtn('savekeys','Valider mes clés'))+'</div>';
+
+V[1].cfg=()=>'<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+
+  guide('👉 Choisis un preset ou écris ton prompt. Chaque clip peut avoir son propre prompt. Le nombre de clips = nombre de vidéos que tu vas générer. Tu les assembleras dans CapCut pour atteindre 1 minute.')+
+  '<h3>1 · Format</h3>'+
+  '<div class="gc">'+[['9:16','Portrait 9:16 (TikTok)'],['1:1','Carré 1:1'],['16:9','Paysage 16:9']].map(r=>'<button class="'+(P.ratio==r[0]?'sel':'')+'" data-a="ratio" data-n="'+r[0]+'">'+r[1]+'</button>').join('')+'</div>'+
+  '<h3>2 · Presets rapides</h3>'+
+  '<div class="gc">'+PRESETS.map((p,i)=>'<button data-a="preset" data-i="'+i+'">'+esc(p.n)+'</button>').join('')+'</div>'+
+  '<h3>3 · Nombre de clips</h3>'+
+  '<div class="gc">'+[[1,'1 clip'],[3,'3 clips'],[5,'5 clips'],[8,'8 clips'],[10,'10 clips']].map(n=>'<button class="'+((P.nclips||3)==n[0]?'sel':'')+'" data-a="nclips" data-n="'+n[0]+'">'+n[1]+'</button>').join('')+'</div>'+
+  '<h3>4 · Tes clips</h3>'+
+  '<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+
+  '<div class="rw" style="margin-top:10px">'+btn('addclip','+ Ajouter un clip')+btn('fillpreset','✦ Remplir tous les clips avec le preset actif','sm')+'</div>'+
+  foot(btn('go','← Précédent','','data-n="0"'),nextBtn('go','Générer les images',P.clips.length?'data-n="2"':'disabled data-off="1"'))+'</div>';
+
+V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+
+  guide('✓ Images prêtes. 👉 Vérifie-les, modifie un prompt si besoin et régénère. Puis passe aux vidéos.','go')+
+  '<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+
+  '<div class="rw" style="margin-top:12px">'+btn('addclip','+ Ajouter un clip')+'</div>'+
+  foot(btn('go','← Précédent','','data-n="1"'),nextBtn('go','Passer aux vidéos','data-n="3"'))+'</div>';
+
+V[3].cfg=()=>{
+  const withImg=P.clips.filter(c=>c.img).length;
+  return '<div class="hero">'+hd(4,'Les <b>vidéos</b>')+
+  '<p class="sub">Chaque image devient une vidéo via Agnès. La file d\'attente peut être saturée : l\'app envoie les clips un par un et attend automatiquement (3, 6, 12, 24… minutes). <b>Garde cet onglet ouvert.</b></p>'+
+  '<div class="cd" id="qp" style="margin:12px 0"></div>'+
+  '<div class="kp" id="kp"></div>'+
+  '<div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+
+  foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
+};
+
+function view(){
+  if(TASK)return workView();
+  const s=P.sub[page]||'cfg';
+  const v=V[page];
+  return (v[s]||v.cfg||'')();
+}
+function render(keep){
+  P.max=Math.max(P.max||0,page);
+  P.page=page;
+  $('#steps').innerHTML=STEPS.map((s,i)=>{
+    const can=!TASK&&i!=page&&(i==0||(KEYS.list.length&&i<=P.max));
+    return '<button class="st '+(i==page?'on':can?'ok':'')+'" '+(can?'data-a="go" data-n="'+i+'"':'disabled')+'>'+(i+1)+'. '+s+'</button>';
+  }).join('');
+  $('#main').innerHTML=view();
+  if(TASK){paintFeed();pgb()}
+  else if(page==0)keysChips();
+  else if(page==3){stats();qui()}
+  else syncNext();
+  if(!keep)scrollTo(0,0);
+  save();
+}
+function keysChips(){const e=$('#kl');if(!e)return;e.innerHTML=KEYS.list.map((k,i)=>'<span class="chip '+(k.off?'off':'')+'">#'+(i+1)+' …'+esc(k.k.slice(-4))+'</span>').join('')}
+
+/* ═════════════════════════════════════════════════════════════════════
+   FILE VIDÉO
+   ═════════════════════════════════════════════════════════════════════ */
+const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+function qHtml(ok,left,total){
+  if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Télécharge-les et assemble-les dans CapCut pour faire ta vidéo de 1 minute.','go');
+  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt à créer les vidéos.</b> 👉 Clique sur le bouton : tout se passe automatiquement.')+'<div class="rw">'+btn('qstart','▶ Lancer la production des vidéos','big')+'</div>';
+  if(!Q.on)return guide('<b>Production en pause.</b> '+ok+' prête(s), '+left+' restante(s).','wt')+'<div class="rw">'+btn('qstart','▶ Reprendre','big')+'</div>';
+  if(Q.st=='full')return guide('<b>⏳ File Agnès saturée.</b> Aucune requête envoyée pendant l\'attente. Prochain test dans <b id="cd" style="font:600 18px Orbitron">'+fmt((Q.next-Date.now())/1000)+'</b>','wt')+'<div class="lab">Paliers</div><div class="gc">'+BACK.map((m,i)=>'<i style="font:11px var(--m);font-style:normal;padding:3px 8px;border:1px solid '+(i==Q.step-1?'var(--b)':'var(--ln)')+';color:'+(i==Q.step-1?'var(--b)':'var(--dim)')+';border-radius:3px">'+m+' min</i>').join('')+'</div><div class="rw">'+btn('qnow','Tester maintenant','sm')+btn('qpause','❚❚ Pause','sm')+'</div>';
+  return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s). Les vidéos apparaissent au fur et à mesure.')+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
+}
+function qui(){
+  const n=Date.now(),c=$('#qchip'),all=P?P.clips:[],ok=all.filter(c=>c.vst=='ok').length,left=all.filter(c=>c.vst!='ok'&&c.img).length;
+  if(c){
+    c.style.display=all.some(c=>c.img)?'':'none';
+    c.textContent='VIDÉO · '+(Q.st=='full'?'file saturée'+(Q.on?' · '+fmt((Q.next-n)/1000):''):!Q.on?(ok==all.length&&all.length?'terminé':'en pause'):'en cours');
+    c.className='chip '+(Q.st=='full'?'cd':!Q.on?'off':'');
+  }
+  const e=$('#qp');
+  if(!e||page!=3||TASK)return;
+  const sig=[Q.st,Q.on,Q.step,ok,left,all.length].join();
+  if(e.dataset.sig!=sig){e.dataset.sig=sig;e.innerHTML=qHtml(ok,left,all.length)}
+  const cd=$('#cd');if(cd)cd.textContent=fmt((Q.next-n)/1000);
+}
+function stats(){
+  const k=$('#kp');if(!k)return;
+  const a=P?P.clips:[];
+  const n=s=>a.filter(c=>c.vst==s&&c.img).length;
+  k.innerHTML='<div class="kp"><b>'+a.length+'</b><span class="lab">Clips</span></div><div class="kp"><b>'+n('ok')+'</b><span class="lab">Vidéos prêtes</span></div><div class="kp"><b>'+n('run')+'</b><span class="lab">En cours</span></div><div class="kp"><b>'+n('wait')+'</b><span class="lab">En attente</span></div><div class="kp"><b>'+n('er')+'</b><span class="lab">Échecs</span></div>';
+}
+const vp=c=>san('Cinematic macro shot. '+c.prompt+' Realistic ambient sound effects only, no music, no subtitles, no on-screen text. Keep the identity, materials and visual style of the first frame identical throughout the shot.');
+const dims=()=>P.ratio=='9:16'?[480,854]:P.ratio=='1:1'?[640,640]:[854,480];
+function sat(){Q.st='full';Q.next=Date.now()+BACK[Q.step]*60000;log('wr','file vidéo saturée → retest dans '+BACK[Q.step]+' min');toast('File Agnès saturée — retest dans '+BACK[Q.step]+' min');Q.step=Math.min(Q.step+1,BACK.length-1);save();qui()}
+async function launch(c){
+  const o=await slot('vid'),free=KEYS.plan=='free';
+  const fr=c.img.u&&c.img.u.indexOf('data:')!==0?c.img.u:ref(c.img);
+  const D=dims();
+  const body=free?{model:VID.free,prompt:vp(c),num_frames:97,frame_rate:12,width:D[0],height:D[1],image:fr}
+                  :{model:VID.plan,prompt:vp(c),seconds:'10',mode:'keyframe',size:'720P',aspect_ratio:P.ratio,first_frame:fr};
+  c.vst='run';c.err='';refresh(c.id);
+  let r;
+  try{r=await fetch(API+'/videos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)})}
+  catch(e){c.vst='wait';Q.next=Date.now()+30000;log('wr','réseau : '+e.message);refresh(c.id);return}
+  if(r.status==503){const t=await r.text().catch(()=>'');log('wr','503 '+t.slice(0,120));c.vst='wait';refresh(c.id);return sat()}
+  if(r.status==429){o.cool=Date.now()+(parseInt(r.headers.get('Retry-After'))||30)*1000;c.vst='wait';refresh(c.id);return}
+  if(!r.ok){
+    const t=(await r.text().catch(()=>'')).slice(0,140);
+    if([401,402,403].indexOf(r.status)>=0&&++o.bad>=2){o.off=true;if(!KEYS.list.some(k=>!k.off)){Q.on=false;Q.st='paused';toast('Aucune clé active')}}
+    c.vst='er';c.err='HTTP '+r.status+' '+t;log('er','vidéo '+c.err);refresh(c.id);return;
+  }
+  const d=await r.json();
+  const id=d.video_id||d.id||d.task_id||(d.data&&(d.data.video_id||d.data.id));
+  if(!id){c.vst='er';c.err='pas de video_id';refresh(c.id);return}
+  let inner=null;
+  try{if(id.indexOf('video_')===0){let b=id.slice(6);while(b.length%4)b+='=';const m=atob(b).match(/video_id:([^;]+)/);if(m)inner=m[1].trim()}}catch(e){}
+  c.task={id:id,inner:inner,k:o.k};
+  Q.st='run';Q.step=0;
+  log('ok','vidéo envoyée (clé …'+o.k.slice(-4)+')');
+  save();qui();
+  poll(c);
+}
+async function poll(c){
+  const t=c.task,model=VID[KEYS.plan],end=Date.now()+30*60000;
+  let n=0,miss=0;const key=t.k;
+  try{
+    await sleep(KEYS.plan=='free'?30000:8000);
+    while(Date.now()<end&&P){
+      const ids=[t.id];if(t.inner&&t.inner!=t.id)ids.push(t.inner);
+      const iv=Math.min(20000,6000+n*1500);n++;
+      let d=null;
+      for(let i=0;i<ids.length;i++){
+        try{
+          const r=await fetch(POLL+'?video_id='+encodeURIComponent(ids[i])+'&model_name='+encodeURIComponent(model),{headers:{Authorization:'Bearer '+key}});
+          if(r.status==429){await sleep(8000);continue}
+          if(!r.ok){miss++;continue}
+          d=await r.json();break;
+        }catch(e){miss++}
+      }
+      if(d){
+        const s=String(d.status||d.state||'').toLowerCase();
+        if(['completed','succeeded','done','success','finished','ready'].indexOf(s)>=0){
+          const u=(d.metadata&&(d.metadata.url||d.metadata.video_url))||(d.output&&(d.output.url||d.output.video_url))||(d.data&&(d.data.url||d.data.video_url))||d.url||d.video_url;
+          if(!u)throw new Error('terminé sans URL');
+          c.video=u;c.vst='ok';c.seen=false;c.err='';
+          log('ok','vidéo prête');toast('🎬 Nouvelle vidéo prête');
+          save();refresh(c.id);
+          return;
         }
-    </script>
-</head>
-<body class="min-h-screen p-4 flex flex-col items-center">
-
-    <header class="text-center mb-6 mt-4 w-full max-w-md">
-        <h1 class="text-2xl font-bold flex items-center justify-center gap-2">🚗 Star en Voiture</h1>
-        <p class="text-gray-500 text-sm mt-1">Votre photo prend vie selon votre imagination</p>
-    </header>
-
-    <main class="w-full max-w-md bg-white rounded-2xl p-5 shadow-xl border border-gray-100">
-        
-        <div class="bg-pink-50 border-l-4 border-pink-500 p-4 mb-5 rounded-r-lg text-sm text-gray-700">
-            <p class="font-semibold mb-1">Comment ça marche :</p>
-            <p>Écrivez ce que vous voulez, ajoutez <strong>1 photo</strong>, et l'IA génère la vidéo correspondante.</p>
-        </div>
-
-        <div class="mb-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <div class="flex flex-col gap-3">
-                <input type="password" id="apiKeyInput" placeholder="Collez votre clé API ici (sk-...)" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-pink-500"/>
-                <button id="saveKeyBtn" class="w-full bg-gray-900 text-white font-semibold py-2 rounded-lg hover:bg-gray-800 transition-all text-sm">
-                    Enregistrer la clé
-                </button>
-            </div>
-            <div id="apiStatus" class="api-status mt-3 text-gray-500">
-                <span class="w-2 h-2 rounded-full bg-gray-400"></span> Aucune clé API enregistrée
-            </div>
-        </div>
-
-        <div class="flex justify-between items-center mb-5 text-xs bg-gray-50 p-3 rounded-lg">
-            <div class="flex items-center gap-2 text-gray-600">
-                <span>📊 Vitesse : en attente</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="text-gray-600">0 génération</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="wakeLockToggle" class="sr-only peer" checked>
-                    <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
-                    <span class="ml-2 text-gray-600 font-medium">Garder l'écran allumé</span>
-                </label>
-            </div>
-        </div>
-
-        <div class="mb-5">
-            <label class="block text-sm font-medium text-gray-700 mb-2">✍️ Votre description (Prompt)</label>
-            <textarea id="promptInput" rows="3" class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-pink-500 resize-none" placeholder="Ex: Le personnage marche devant une Lamborghini rose, cinématique, 4k, synchro labiale...">En utilisant <Picture 1> comme référence pour le personnage, génère une vidéo cinématique où il marche devant une Lamborghini rose personnalisée, avec une synchronisation labiale naturelle.</textarea>
-        </div>
-
-        <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-xl p-8 mb-5 text-center cursor-pointer hover:border-pink-400 transition-colors">
-            <input type="file" id="photoInput" accept="image/*" class="hidden"/>
-            <div class="text-4xl text-gray-400 mb-2">+</div>
-            <p class="text-sm text-gray-500">Ajoutez votre photo ici</p>
-        </div>
-
-        <div id="previewArea" class="hidden mb-5">
-            <div class="video-container">
-                <img id="previewImage" class="w-full h-full object-cover opacity-90" />
-            </div>
-        </div>
-
-        <button id="generateBtn" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:from-pink-500 hover:to-purple-500 transition-all shadow-lg shadow-pink-500/30 disabled:opacity-50 disabled:cursor-not-allowed">
-            🚀 Générer la vidéo
-        </button>
-
-        <div id="statusArea" class="mt-5 text-center hidden">
-            <div class="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden mb-2">
-                <div class="loading-progress" id="progressBar"></div>
-            </div>
-            <p id="statusText" class="text-sm text-gray-500 animate-pulse">Initialisation...</p>
-        </div>
-
-        <div id="resultArea" class="mt-5 hidden">
-            <div class="video-container">
-                <video id="resultVideo" controls autoplay loop class="w-full h-full object-cover"></video>
-            </div>
-            <a id="downloadBtn" download="video_generee.mp4" class="block w-full mt-3 text-center bg-gray-800 text-white text-sm py-2 rounded-lg hover:bg-gray-700 transition">Télécharger la vidéo</a>
-        </div>
-    </main>
-
-    <script>
-        // --- Helpers ---
-        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-        async function fetchWithTimeout(resource, options = {}) {
-            const { timeout = 30000 } = options;
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout);
-            try {
-                const response = await fetch(resource, { ...options, signal: controller.signal });
-                clearTimeout(id);
-                return response;
-            } catch (error) {
-                clearTimeout(id);
-                throw error;
-            }
+        if(['failed','error','cancelled','canceled','rejected'].indexOf(s)>=0){
+          throw new Error(String((d.error&&d.error.message)||d.error||'échec').slice(0,100));
         }
+      }else if(miss>20)throw new Error('suivi impossible');
+      await sleep(iv);
+    }
+    throw new Error('délai dépassé');
+  }catch(e){
+    c.vst='er';c.err=e.message;
+    log('er','vidéo : '+e.message);
+    save();refresh(c.id);
+  }
+}
+setInterval(function(){
+  qui();
+  if(!P||!Q.on||Q.busy||Date.now()<Q.next)return;
+  const a=P.clips,todo=a.filter(c=>c.vst=='wait'&&c.img),run=a.filter(c=>c.vst=='run').length,live=KEYS.list.filter(k=>!k.off).length;
+  if(!todo.length){if(!run){Q.on=false;Q.st='idle';save();qui()}return}
+  if(run>=Math.max(2,live*3))return;
+  Q.busy=true;
+  launch(todo[0]).catch(e=>{log('er','file : '+e.message);Q.on=false;Q.st='paused'}).then(()=>{Q.busy=false});
+},1000);
+let wl=null;
+async function wake(){try{if(navigator.wakeLock)wl=await navigator.wakeLock.request('screen')}catch(e){}}
+function qstart(){
+  if(!P.clips.some(c=>c.img))return toast('Il faut d\'abord des images');
+  Q.on=true;
+  if(Q.st=='paused'||Q.st=='idle')Q.st='run';
+  if(Q.st!='full')Q.next=0;
+  wake();save();qui();
+  log('in','production vidéo lancée');
+}
 
-        async function fetchWithRetry(url, options, maxRetries = 5) {
-            let attempt = 0;
-            while (attempt < maxRetries) {
-                attempt++;
-                try {
-                    const response = await fetchWithTimeout(url, options);
-                    if (response.ok) return response;
-                    if (response.status === 429 || response.status === 503) {
-                        const retryAfter = response.headers.get('Retry-After');
-                        let delay = retryAfter
-                            ? parseInt(retryAfter) * 1000
-                            : Math.min(1000 * Math.pow(2, attempt) + Math.random() * 1000, 30000);
-                        statusText.innerText = `Serveur occupé. Nouvelle tentative dans ${Math.round(delay / 1000)}s... (${attempt}/${maxRetries})`;
-                        progressBar.style.width = `${10 + attempt * 5}%`;
-                        await sleep(delay);
-                    } else {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.message || `Erreur ${response.status}`);
-                    }
-                } catch (error) {
-                    if (attempt >= maxRetries) throw error;
-                    const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 1000, 30000);
-                    statusText.innerText = `Erreur réseau. Nouvelle tentative dans ${Math.round(delay / 1000)}s... (${attempt}/${maxRetries})`;
-                    await sleep(delay);
-                }
-            }
-            throw new Error("Échec après plusieurs tentatives.");
-        }
+/* ═════════════════════════════════════════════════════════════════════
+   ACTIONS
+   ═════════════════════════════════════════════════════════════════════ */
+const OK_DURING=['con','stoptask','retrytask','canceltask'];
+async function onClick(e){
+  const b=e.target.closest('[data-a]');
+  if(!b||b.disabled)return;
+  const a=b.dataset.a,id=b.dataset.id;
+  if(TASK&&OK_DURING.indexOf(a)<0)return toast('Opération en cours : patiente ou clique sur Arrêter');
+  if(a=='go')go(+b.dataset.n);
+  else if(a=='con')$('#con').classList.toggle('on');
+  else if(a=='savekeys'){
+    const ks=Array.from(new Set($('#keys').value.split(/[\s,;]+/).map(s=>s.trim()).filter(s=>s.length>=8)));
+    if(!ks.length)return toast('Colle au moins une clé API');
+    KEYS.plan=$('#plan').value;
+    KEYS.list=ks.map(k=>{const old=KEYS.list.find(o=>o.k==k);return old||mkKey(k)});
+    dbPut('config',{key:'keys',list:ks,plan:KEYS.plan}).catch(er=>log('wr','clés : '+er.message));
+    toast('✓ '+ks.length+' clé(s) enregistrée(s)');
+    go(Math.max(1,P.last||1));
+  }
+  else if(a=='ratio'){P.ratio=b.dataset.n;render(true)}
+  else if(a=='nclips'){
+    const n=+b.dataset.n;P.nclips=n;
+    while(P.clips.length<n){const preset=PRESETS[P.clips.length%PRESETS.length];P.clips.push({id:uid(),prompt:preset.p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false})}
+    while(P.clips.length>n)P.clips.pop();
+    render(true);
+  }
+  else if(a=='preset'){
+    const p=PRESETS[+b.dataset.i];
+    if(P.clips.length&&confirm('Remplacer le prompt du 1er clip par "'+p.n+'" ?')){P.clips[0].prompt=p.p;render(true)}
+    else if(!P.clips.length)toast('Ajoute d\'abord un clip');
+  }
+  else if(a=='fillpreset'){
+    if(!P.clips.length)return toast('Ajoute des clips d\'abord');
+    const last=P.clips[P.clips.length-1].prompt;
+    P.clips.forEach(c=>c.prompt=last);
+    render(true);toast('Tous les clips utilisent le dernier prompt');
+  }
+  else if(a=='addclip'){
+    const preset=PRESETS[P.clips.length%PRESETS.length];
+    P.clips.push({id:uid(),prompt:preset.p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false});
+    render(true);
+  }
+  else if(a=='delclip'){
+    if(!confirm('Supprimer ce clip ?'))return;
+    P.clips=P.clips.filter(c=>c.id!=id);render(true);
+  }
+  else if(a=='genimg')genImg(id);
+  else if(a=='stoptask'){TASK.stop=true;toast('Arrêt en cours…')}
+  else if(a=='retrytask')retryTask();
+  else if(a=='canceltask'){TASK=null;render()}
+  else if(a=='qstart')qstart();
+  else if(a=='qpause'){Q.on=false;Q.st='paused';save();qui()}
+  else if(a=='qnow'){Q.on=true;Q.next=0;log('in','test manuel');save()}
+  else if(a=='sess')sessions();
+  else if(a=='new'){setP(newP());$('#md')&&($('#md').classList.remove('on'));page=KEYS.list.length?1:0;render()}
+}
+document.addEventListener('click',e=>{onClick(e).catch(er=>{log('er','action : '+er.message);toast('Erreur : '+er.message)})});
+window.addEventListener('error',e=>{log('er',e.message)});
+window.addEventListener('unhandledrejection',e=>{log('er','promesse : '+(e.reason&&e.reason.message||e.reason))});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(!t.dataset.f||!P)return;
+  const f=find(t.dataset.id);
+  if(!f)return;
+  f.o[t.dataset.f]=t.value;
+  save();
+});
+document.addEventListener('change',async e=>{
+  const t=e.target;
+  if(t.dataset.up){
+    const f=t.files[0];if(!f)return;
+    const c=find(t.dataset.up);if(!c)return;
+    const fr=new FileReader();
+    fr.onload=()=>{
+      const im=new Image();
+      im.onload=()=>{
+        const s=Math.min(1,1024/Math.max(im.width,im.height));
+        const cv=document.createElement('canvas');cv.width=Math.round(im.width*s);cv.height=Math.round(im.height*s);
+        cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+        const d=cv.toDataURL('image/jpeg',0.88);
+        c.o.img={u:d,d:d};c.o.err='';refresh(c.o.id);save();
+      };
+      im.src=fr.result;
+    };
+    fr.readAsDataURL(f);
+  }
+});
+async function sessions(){
+  const l=(await dbAll('clips')).sort((a,b)=>b.upd-a.upd);
+  $('#md')||document.body.insertAdjacentHTML('beforeend','<div id="md" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:70;display:none;align-items:center;justify-content:center;padding:16px"><div id="mdc" style="background:#14141f;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:20px;border:1px solid var(--a);border-radius:8px"></div></div>');
+  $('#mdc').innerHTML='<h3>Mes clips</h3><p class="sub">Tout est enregistré dans ce navigateur.</p><div class="rw">'+btn('new','+ Nouveau projet')+'<button class="sm" onclick="document.getElementById(\'md\').classList.remove(\'on\')">Fermer</button></div>'+
+    l.map(p=>{
+      const ok=p.clips?p.clips.filter(c=>c.video).length:0;
+      return '<div class="cd" style="margin-top:8px"><b>'+esc(p.title||'Projet ASMR')+'</b>'+(p.id==P.id?' · <span class="lab">en cours</span>':'')+
+        '<div class="lab">'+new Date(p.upd).toLocaleString('fr-FR')+' · '+(p.clips?p.clips.length:0)+' clips · '+ok+' vidéos</div>'+
+        '<div class="rw">'+btn('open','Ouvrir','sm','data-id="'+p.id+'"')+'<button class="sm" data-a="delsess" data-id="'+p.id+'">Supprimer</button></div></div>';
+    }).join('');
+  $('#md').classList.add('on');
+}
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;
+  const a=b.dataset.a,id=b.dataset.id;
+  if(a=='open'){
+    const p=await dbGet('clips',id);
+    if(p){setP(p);page=KEYS.list.length?Math.max(1,Math.min(p.page||1,3)):0;$('#md')&&$('#md').classList.remove('on');render();resume()}
+  }
+  if(a=='delsess'){
+    if(!confirm('Supprimer ?'))return;
+    await dbDel('clips',id);
+    if(P.id==id){setP(newP());page=KEYS.list.length?1:0;render()}
+    sessions();
+  }
+});
 
-        function compressImage(file, maxWidth = 1280, quality = 0.8) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-                        if (width > maxWidth) {
-                            height = Math.round((height * maxWidth) / width);
-                            width = maxWidth;
-                        }
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', quality));
-                    };
-                    img.onerror = reject;
-                    img.src = e.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-
-        // --- DOM Elements ---
-        const apiKeyInput = document.getElementById('apiKeyInput');
-        const saveKeyBtn = document.getElementById('saveKeyBtn');
-        const apiStatus = document.getElementById('apiStatus');
-        const photoInput = document.getElementById('photoInput');
-        const uploadArea = document.getElementById('uploadArea');
-        const previewArea = document.getElementById('previewArea');
-        const previewImage = document.getElementById('previewImage');
-        const promptInput = document.getElementById('promptInput');
-        const generateBtn = document.getElementById('generateBtn');
-        const statusArea = document.getElementById('statusArea');
-        const statusText = document.getElementById('statusText');
-        const progressBar = document.getElementById('progressBar');
-        const resultArea = document.getElementById('resultArea');
-        const resultVideo = document.getElementById('resultVideo');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const wakeLockToggle = document.getElementById('wakeLockToggle');
-
-        let wakeLock = null;
-        let currentImageBase64 = null;
-        let isGenerating = false;
-
-        // --- 1. Clé API ---
-        function loadApiKey() {
-            const savedKey = localStorage.getItem('agnes_api_key');
-            if (savedKey) {
-                apiKeyInput.value = savedKey;
-                updateApiStatus(true);
-            } else {
-                updateApiStatus(false);
-            }
-        }
-
-        function updateApiStatus(isReady) {
-            if (isReady) {
-                apiStatus.className = 'api-status ready';
-                apiStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span> Clé API enregistrée';
-            } else {
-                apiStatus.className = 'api-status missing';
-                apiStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500"></span> Aucune clé API enregistrée';
-            }
-        }
-
-        saveKeyBtn.addEventListener('click', () => {
-            const key = apiKeyInput.value.trim();
-            if (key) {
-                localStorage.setItem('agnes_api_key', key);
-                updateApiStatus(true);
-                alert('Clé API enregistrée avec succès !');
-            } else {
-                localStorage.removeItem('agnes_api_key');
-                updateApiStatus(false);
-                alert('Veuillez entrer une clé valide.');
-            }
-        });
-
-        loadApiKey();
-
-        // --- 2. Anti-veille ---
-        async function requestWakeLock() {
-            if (!wakeLockToggle.checked) return;
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                }
-            } catch (err) {
-                console.error(`Erreur Wake Lock: ${err.name}`);
-            }
-        }
-
-        function releaseWakeLock() {
-            if (wakeLock !== null) {
-                wakeLock.release();
-                wakeLock = null;
-            }
-        }
-
-        // --- 3. Upload & compression photo ---
-        uploadArea.addEventListener('click', () => photoInput.click());
-
-        photoInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                try {
-                    const compressedBase64 = await compressImage(file);
-                    currentImageBase64 = compressedBase64;
-                    previewImage.src = compressedBase64;
-                    uploadArea.classList.add('hidden');
-                    previewArea.classList.remove('hidden');
-                    resultArea.classList.add('hidden');
-                } catch (err) {
-                    alert("Erreur lors du traitement de l'image : " + err.message);
-                }
-            }
-        });
-
-        // --- 4. Génération ---
-        generateBtn.addEventListener('click', async () => {
-            const apiKey = localStorage.getItem('agnes_api_key');
-            const userPrompt = promptInput.value.trim();
-
-            if (!apiKey) {
-                alert("Veuillez d'abord enregistrer votre clé API Agnes.");
-                return;
-            }
-            if (!currentImageBase64) {
-                alert("Veuillez d'abord ajouter une photo.");
-                return;
-            }
-            if (!userPrompt) {
-                alert("Veuillez écrire une description (prompt) pour la vidéo.");
-                return;
-            }
-            if (isGenerating) {
-                alert("Une génération est déjà en cours. Veuillez patienter.");
-                return;
-            }
-
-            isGenerating = true;
-            generateBtn.disabled = true;
-            statusArea.classList.remove('hidden');
-            resultArea.classList.add('hidden');
-            progressBar.style.width = '0%';
-
-            await requestWakeLock();
-
-            try {
-                // ÉTAPE 1 : Création de la tâche
-                statusText.innerText = "Création de la tâche vidéo...";
-                progressBar.style.width = '10%';
-
-                const createResponse = await fetchWithRetry('https://apihub.agnes-ai.com/v1/videos', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'agnes-video-2.5-flash',
-                        prompt: userPrompt,
-                        seconds: '5',
-                        mode: 'reference',
-                        size: '720P',
-                        aspect_ratio: '9:16',
-                        images: [currentImageBase64]
-                    })
-                });
-
-                const createData = await createResponse.json();
-                const videoId = createData.video_id || createData.id;
-                if (!videoId) throw new Error("L'API n'a pas renvoyé d'identifiant de vidéo.");
-                console.log('Tâche créée avec ID:', videoId);
-
-                // ÉTAPE 2 : Polling adaptatif
-                statusText.innerText = "Génération de la vidéo en cours...";
-                progressBar.style.width = '30%';
-
-                let videoUrl = null;
-                const maxAttempts = 60;
-                let pollInterval = 2000; // 2s au début
-
-                for (let i = 0; i < maxAttempts; i++) {
-                    await sleep(pollInterval);
-                    pollInterval = Math.min(pollInterval * 1.5, 10000); // max 10s
-
-                    const progress = Math.min(30 + (i / maxAttempts) * 60, 90);
-                    progressBar.style.width = `${progress}%`;
-                    statusText.innerText = `Génération en cours... (${i + 1}/${maxAttempts})`;
-
-                    const statusResponse = await fetchWithTimeout(
-                        `https://apihub.agnes-ai.com/agnesapi?video_id=${videoId}&model_name=agnes-video-2.5-flash`,
-                        {
-                            headers: { 'Authorization': `Bearer ${apiKey}` },
-                            timeout: 15000
-                        }
-                    );
-
-                    if (!statusResponse.ok) {
-                        console.warn(`Erreur polling (${i + 1}):`, statusResponse.status);
-                        continue;
-                    }
-
-                    const statusData = await statusResponse.json();
-                    console.log('Statut:', statusData);
-
-                    if (statusData.status === 'completed' && statusData.url) {
-                        videoUrl = statusData.url;
-                        break;
-                    }
-                    if (statusData.status === 'failed') {
-                        throw new Error(statusData.error?.message || "La génération vidéo a échoué.");
-                    }
-                }
-
-                if (!videoUrl) throw new Error("Délai dépassé. La génération a pris trop de temps.");
-
-                // ÉTAPE 3 : Résultat
-                progressBar.style.width = '100%';
-                statusText.innerText = "Vidéo générée avec succès !";
-                resultVideo.src = videoUrl;
-                downloadBtn.href = videoUrl;
-                resultArea.classList.remove('hidden');
-
-            } catch (error) {
-                alert("Erreur : " + error.message);
-                console.error(error);
-                progressBar.style.width = '0%';
-            } finally {
-                isGenerating = false;
-                releaseWakeLock();
-                generateBtn.disabled = false;
-                statusArea.classList.add('hidden');
-            }
-        });
-
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') {
-                await wakeLock.request('screen');
-            }
-        });
-    </script>
-</body>
-</html>
+/* ═════════════════════════════════════════════════════════════════════
+   INIT
+   ═════════════════════════════════════════════════════════════════════ */
+function resume(){
+  P.clips.forEach(c=>{
+    if(c.vst=='run'&&c.task){
+      if(KEYS.list.some(k=>k.k==c.task.k))poll(c);
+      else c.vst='wait';
+    }
+  });
+  qui();
+}
+(async()=>{
+  try{db=await Promise.race([openDB(),new Promise((_,rj)=>setTimeout(()=>rj(new Error('délai')),3000))])}
+  catch(e){db=null;fall(e)}
+  try{
+    const k=await dbGet('config','keys');
+    if(k){KEYS.plan=k.plan||'free';KEYS.list=(k.list||[]).map(mkKey)}
+    const last=await dbGet('config','last'),p=last&&await dbGet('clips',last.v);
+    setP(p||newP());
+    if(!P.clips.length){
+      P.clips=[0,1,2].map(i=>({id:uid(),prompt:PRESETS[i].p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false}));
+    }
+  }catch(e){setP(newP())}
+  page=KEYS.list.length?Math.max(1,Math.min(P.page||1,3)):0;
+  render();
+  resume();
+  log('in','ASMR LOOP prêt · '+KEYS.list.length+' clé(s)');
+})();
+</script></body></html>
