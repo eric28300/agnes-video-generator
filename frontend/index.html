@@ -57,9 +57,6 @@ button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-col
 <div id="toast"></div>
 
 <script>
-/* ═════════════════════════════════════════════════════════════════════
-   CONFIG
-   ═════════════════════════════════════════════════════════════════════ */
 const API='https://apihub.agnes-ai.com/v1',POLL='https://apihub.agnes-ai.com/agnesapi';
 const IMG='agnes-image-2.5-flash',VID={free:'agnes-video-2.5-flash',plan:'agnes-video-2.5-flash'};
 const VID_TRIES=['agnes-video-2.5-flash','agnes-video-v2.5','agnes-video','agnes-video-pro','agnes-video-v2.0','agnes-video-v3.0'];
@@ -81,9 +78,6 @@ const PRESETS=[
  {n:'Sable cinétique',p:"Plan macro ultra-réaliste d'une main gantée de blanc tenant un couteau en métal et coupant un bloc de sable cinétique bleu turquoise. Le sable a une texture dense et lisse. Le couteau tranche en produisant une coupe parfaitement nette. Le bloc se sépare en deux. Éclairage doux diffus, fond gris clair. Style ASMR macro, 8K."}
 ];
 
-/* ═════════════════════════════════════════════════════════════════════
-   UTILS
-   ═════════════════════════════════════════════════════════════════════ */
 const $=s=>document.querySelector(s);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -96,7 +90,6 @@ const AR=()=>(P?P.ratio:'9:16').replace(':','/');
 const ref=i=>i&&(i.d||i.u);
 const mkKey=k=>({k,img:0,vid:0,cool:0,bad:0,off:false});
 
-/* STOCKAGE */
 function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('asmr_loop_v1',1);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('clips'))d.createObjectStore('clips',{keyPath:'id'});if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'})}})}
 const tx=(s,m,f)=>new Promise((res,rej)=>{try{const r=f(db.transaction(s,m).objectStore(s));r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});
 let mode='idb';const mem={clips:{},config:{}},lsK=(s,k)=>'al1_'+s+'_'+k;
@@ -107,11 +100,9 @@ async function dbDel(s,k){delete mem[s][k];if(db&&mode=='idb'){try{return await 
 async function dbAll(s){if(db&&mode=='idb'){try{return await tx(s,'readonly',o=>o.getAll())}catch(e){fall(e)}}const o=Object.assign({},mem[s]);try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n.startsWith(lsK(s,''))){const v=JSON.parse(localStorage.getItem(n));o[v.key||v.id]=v}}}catch(e){}return Object.values(o)}
 let svT;function save(){if(!P)return;clearTimeout(svT);svT=setTimeout(()=>{P.upd=Date.now();dbPut('clips',P).catch(e=>log('er','sauvegarde : '+e.message))},350)}
 
-/* LOG / TOAST */
 function log(l,m){const d=document.createElement('div');d.className='lg '+l;d.textContent=new Date().toLocaleTimeString('fr-FR')+'  '+m;const b=$('#lb');if(!b)return;b.appendChild(d);while(b.children.length>400)b.firstChild.remove();b.scrollTop=b.scrollHeight}
 function toast(m){const d=document.createElement('div');d.textContent=m;$('#toast').appendChild(d);setTimeout(()=>d.remove(),4200)}
 
-/* PLANIFICATEUR MULTI-CLÉS */
 async function slot(kind){
   for(;;){
     if(TASK&&TASK.stop)throw new Error('stop');
@@ -143,7 +134,6 @@ async function call(kind,url,body,tries){
   throw err||new Error('échec');
 }
 
-/* IMAGES */
 function toData(u){
   return new Promise(resolve=>{
     if(!u)return resolve(null);
@@ -175,39 +165,23 @@ function ensureRef(img){
   return img._conv;
 }
 
-/* MODÈLE */
-const newP=()=>({
-  id:uid()+uid(),created:Date.now(),upd:Date.now(),
-  page:0,last:0,max:0,ratio:'9:16',
-  clips:[],nclips:3,sub:{},
-  q:{step:0,next:0,st:'idle',on:false}
-});
+const newP=()=>({id:uid()+uid(),created:Date.now(),upd:Date.now(),page:0,last:0,max:0,ratio:'9:16',clips:[],nclips:3,sub:{},q:{step:0,next:0,st:'idle',on:false}});
 function setP(p){
-  P=p;
-  P.clips=P.clips||[];P.sub=P.sub||{};
+  P=p;P.clips=P.clips||[];P.sub=P.sub||{};
   Q=P.q=P.q||{step:0,next:0,st:'idle',on:false};
   P.clips.forEach(c=>{c.busy=false;if(c.vst=='run'&&!c.task)c.vst='wait'});
   dbPut('config',{key:'last',v:P.id});
 }
 const anyBusy=()=>P.clips.some(c=>c.busy);
-function find(id){
-  for(let i=0;i<P.clips.length;i++)if(P.clips[i].id==id)return{t:'c',o:P.clips[i],i:i};
-  return null;
-}
+function find(id){for(let i=0;i<P.clips.length;i++)if(P.clips[i].id==id)return{t:'c',o:P.clips[i],i:i};return null}
 async function genImg(id){
-  const f=find(id);
-  if(!f||f.o.busy)return;
-  const o=f.o;
-  o.busy=true;o.err='';refresh(id);
-  try{
-    o.img=await mkImg(o.prompt,null,P.ratio);
-    await ensureRef(o.img);
-  }
+  const f=find(id);if(!f||f.o.busy)return;
+  const o=f.o;o.busy=true;o.err='';refresh(id);
+  try{o.img=await mkImg(o.prompt,null,P.ratio);await ensureRef(o.img)}
   catch(e){if(e.message!='stop'){o.err='Échec : '+String(e.message).slice(0,80);log('er','image : '+e.message)}}
   o.busy=false;refresh(id);save();
 }
 
-/* AFFICHAGE */
 const guide=(h,c)=>'<div class="guide '+(c||'')+'"><div>'+h+'</div></div>';
 const hd=(n,t)=>'<div class="lab">ÉTAPE '+n+' / 4</div><h2>'+t+'</h2>';
 const btn=(a,l,c,x)=>'<button class="'+(c||'')+'" data-a="'+a+'" '+(x||'')+'>'+l+'</button>';
@@ -232,7 +206,6 @@ function refresh(id){
   syncNext();
 }
 
-/* TÂCHE */
 function fd(t){const it={t:t,s:'run',at:Date.now()};TASK.items.push(it);paintFeed();return it}
 function fdDone(it,t){it.s='ok';if(t)it.t=t;paintFeed()}
 function paintFeed(){const e=$('#feed');if(!e||!TASK)return;const n=Date.now();e.innerHTML=TASK.items.map(i=>'<div class="fi '+i.s+'"><span class="ic">'+(i.s=='ok'?'✓':i.s=='er'?'✕':'<i class="sp2"></i>')+'</span><span>'+esc(i.t)+'</span>'+(i.s=='run'?'<em>'+Math.round((n-i.at)/1000)+' s</em>':'')+'</div>').join('')}
@@ -251,8 +224,7 @@ function workView(){
 async function task(step,title,fn,after){
   if(TASK)return;
   TASK={step:step,title:title,fn:fn,after:after,items:[],start:Date.now(),stop:false,err:null,pg:null};
-  page=step;
-  render();
+  page=step;render();
   try{await fn();chk()}
   catch(e){
     const T=TASK;
@@ -265,11 +237,9 @@ async function task(step,title,fn,after){
 function retryTask(){const T=TASK;if(!T||!T.err)return;TASK=null;task(T.step,T.title,T.fn,T.after)}
 setInterval(()=>{if(!TASK||TASK.err)return;const e=$('#el');if(e)e.textContent=Math.round((Date.now()-TASK.start)/1000)+' s';paintFeed()},1000);
 
-/* NAVIGATION */
 function go(n){if(TASK)return;if(page>0)P.last=page;page=n;render()}
 function done(step,sub){P.sub[step]=sub;save();render()}
 
-/* PIPELINE */
 function runImages(){
   const todo=P.clips.filter(c=>!c.img);
   if(!todo.length){done(2,'rev');return}
@@ -294,7 +264,6 @@ function runImages(){
   },()=>done(2,'rev'));
 }
 
-/* VUES */
 const V={0:{},1:{},2:{},3:{}};
 
 V[0].cfg=()=>'<div class="hero">'+hd(1,'Tes clés API <b>Agnès</b>')+
@@ -345,8 +314,7 @@ function view(){
   return fn?fn():'<div class="hero"><div class="guide er">Vue introuvable (étape '+page+', sous-état '+s+')</div></div>';
 }
 function render(keep){
-  P.max=Math.max(P.max||0,page);
-  P.page=page;
+  P.max=Math.max(P.max||0,page);P.page=page;
   $('#steps').innerHTML=STEPS.map((s,i)=>{
     const can=!TASK&&i!=page&&(i==0||(KEYS.list.length&&i<=P.max));
     return '<button class="st '+(i==page?'on':can?'ok':'')+'" '+(can?'data-a="go" data-n="'+i+'"':'disabled')+'>'+(i+1)+'. '+s+'</button>';
@@ -361,7 +329,6 @@ function render(keep){
 }
 function keysChips(){const e=$('#kl');if(!e)return;e.innerHTML=KEYS.list.map((k,i)=>'<span class="chip '+(k.off?'off':'')+'">#'+(i+1)+' …'+esc(k.k.slice(-4))+'</span>').join('')}
 
-/* FILE VIDÉO */
 const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function qHtml(ok,left,total){
   if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Télécharge-les et assemble-les dans CapCut.','go');
@@ -396,18 +363,17 @@ async function launch(c){
   const o=await slot('vid'),free=KEYS.plan=='free';
   const fr=c.img.u&&c.img.u.indexOf('data:')!==0?c.img.u:ref(c.img);
   const modelName=c._model||(free?VID_TRIES[0]:VID.plan);
-  // Body MINIMAL : uniquement les champs acceptés par Agnès
-  // (num_frames, frame_rate, width, height, seconds, mode, size sont INTERDITS)
-  const body={model:modelName,prompt:vp(c),aspect_ratio:P.ratio};
-  if(free){body.image=fr}else{body.first_frame=fr}
+  // Body avec le champ MODE (obligatoire) + champs minimaux
+  const body=free
+    ?{model:modelName,prompt:vp(c),mode:'image_to_video',aspect_ratio:P.ratio,image:fr}
+    :{model:modelName,prompt:vp(c),mode:'keyframe',aspect_ratio:P.ratio,first_frame:fr};
   c.vst='run';c.err='';refresh(c.id);
   let r;
   try{r=await fetch(API+'/videos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)})}
   catch(e){c.vst='wait';Q.next=Date.now()+30000;log('wr','réseau : '+e.message);refresh(c.id);return}
   if(!r.ok){
-    const t=(await r.text().catch(()=>'')).slice(0,250);
+    const t=(await r.text().catch(()=>'')).slice(0,300);
     log('er','vidéo HTTP '+r.status+' '+t);
-    // Modèle inexistant → essaye le suivant
     if((r.status==503||r.status==404||r.status==400)&&t.indexOf('model_not_found')>=0&&free){
       const idx=VID_TRIES.indexOf(modelName);
       if(idx>=0&&idx<VID_TRIES.length-1){
@@ -418,11 +384,16 @@ async function launch(c){
       log('er','aucun modèle vidéo trouvé pour ta clé');
       c.vst='er';c.err='Aucun modèle vidéo accessible avec ta clé';refresh(c.id);return;
     }
-    // Champ interdit → on le signale précisément
     if(r.status==400&&t.indexOf('FORBIDDEN')>=0){
       const match=t.match(/"MESSAGE":"([^"]+)"/);
       const msg=match?match[1]:'champ interdit';
       log('er','champ interdit : '+msg);
+      c.vst='er';c.err=msg.slice(0,100);refresh(c.id);return;
+    }
+    if(r.status==400&&t.indexOf('REQUIRED')>=0){
+      const match=t.match(/"MESSAGE":"([^"]+)"/);
+      const msg=match?match[1]:'champ requis';
+      log('er','champ requis : '+msg);
       c.vst='er';c.err=msg.slice(0,100);refresh(c.id);return;
     }
     if(r.status==503||r.status==429){
@@ -504,7 +475,6 @@ function qstart(){
   log('in','production vidéo lancée · recherche du bon modèle');
 }
 
-/* ACTIONS */
 const OK_DURING=['con','stoptask','retrytask','canceltask'];
 async function onClick(e){
   const b=e.target.closest('[data-a]');
@@ -614,7 +584,6 @@ document.addEventListener('click',async e=>{
   }
 });
 
-/* INIT */
 function resume(){
   P.clips.forEach(c=>{
     if(c.vst=='run'&&c.task){
