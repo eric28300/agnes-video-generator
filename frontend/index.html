@@ -63,8 +63,9 @@ const RPM={free:{img:10,vid:1},plan:{img:100,vid:5}};
 const STEPS=['Clés','Prompts','Images','Vidéos'];
 const BACK=[3,6,12,24,48,96];
 
-const MODES=['image_to_video','i2v','image','animate','video','text','default','generate','image2video','img2vid','keyframe'];
-const FIELDS=['image','first_frame','input_image','init_image','image_url','start_image','source_image'];
+// 16 combinaisons ciblées (les plus probables selon la doc Agnès)
+const MODES=['keyframe','image_to_video','image','i2v'];
+const FIELDS=['first_frame','image','input_image','init_image'];
 
 const PRESETS=[
  {n:'Sablier liquide',p:"Plan macro ultra-réaliste, objectif 100mm, d'un sablier en verre noir mat posé sur une surface en obsidienne polie. À l'intérieur, un liquide visqueux et lumineux composé de filaments cyan et or flotte en apesanteur. Une tige en bois brut descend lentement et perce la paroi du sablier. Le verre se fissure en fractales lumineuses, libérant une poussière d'étoiles qui tourbillonne. Éclairage volumétrique doux, contraste élevé, fond noir profond. Style ASMR macro, ultra-détaillé, cinématographique, 8K. Physique satisfaisante, mouvement lent et hypnotique. Caméra : plan fixe."},
@@ -242,7 +243,7 @@ function runImages(){
 }
 
 const V={0:{},1:{},2:{},3:{}};
-V[0].cfg=()=>'<div class="hero">'+hd(1,'Tes clés API <b>Agnès</b>')+guide('👉 Colle tes clés Agnès (une par ligne). <b>Plus tu mets de clés, plus on teste vite les 77 combinaisons.</b>')+'<textarea id="keys" rows="8" spellcheck="false" placeholder="sk-…&#10;sk-…&#10;sk-…">'+esc(KEYS.list.map(k=>k.k).join('\n'))+'</textarea>'+'<label class="f"><span class="lab">Type de clés</span><select id="plan"><option value="free" '+(KEYS.plan=='free'?'selected':'')+'>Gratuites</option><option value="plan" '+(KEYS.plan=='plan'?'selected':'')+'>Payantes</option></select></label>'+'<div id="kl" class="chips"></div>'+foot('',nextBtn('savekeys','Valider mes clés'))+'</div>';
+V[0].cfg=()=>'<div class="hero">'+hd(1,'Tes clés API <b>Agnès</b>')+guide('👉 Colle tes clés Agnès (une par ligne). Plus tu mets de clés, plus on teste vite.')+'<textarea id="keys" rows="8" spellcheck="false" placeholder="sk-…&#10;sk-…&#10;sk-…">'+esc(KEYS.list.map(k=>k.k).join('\n'))+'</textarea>'+'<label class="f"><span class="lab">Type de clés</span><select id="plan"><option value="free" '+(KEYS.plan=='free'?'selected':'')+'>Gratuites</option><option value="plan" '+(KEYS.plan=='plan'?'selected':'')+'>Payantes</option></select></label>'+'<div id="kl" class="chips"></div>'+foot('',nextBtn('savekeys','Valider mes clés'))+'</div>';
 V[1].cfg=()=>'<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+guide('👉 Choisis un preset ou écris ton prompt. Le nombre de clips = nombre de vidéos que tu vas générer.')+
   '<h3>1 · Format</h3><div class="gc">'+[['9:16','Portrait 9:16'],['1:1','Carré 1:1'],['16:9','Paysage 16:9']].map(r=>'<button class="'+(P.ratio==r[0]?'sel':'')+'" data-a="ratio" data-n="'+r[0]+'">'+r[1]+'</button>').join('')+'</div>'+
   '<h3>2 · Presets</h3><div class="gc">'+PRESETS.map((p,i)=>'<button data-a="preset" data-i="'+i+'">'+esc(p.n)+'</button>').join('')+'</div>'+
@@ -251,7 +252,7 @@ V[1].cfg=()=>'<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+guide('👉 Ch
   foot(btn('go','← Précédent','','data-n="0"'),nextBtn('go','Générer les images',P.clips.length?'data-n="2"':'disabled data-off="1"'))+'</div>';
 V[2].cfg=()=>'<div class="hero">'+hd(3,'Prêt à générer les <b>images</b>')+guide('✓ Clique sur le bouton pour lancer la création des images.')+'<div class="rw">'+btn('startimg','✦ Lancer la génération','big')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'))+'</div>';
 V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+guide('✓ Vérifie-les, régénère si besoin, puis passe aux vidéos.','go')+'<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'),nextBtn('go','Passer aux vidéos','data-n="3"'))+'</div>';
-V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">L\'app teste automatiquement 11 modes × 7 champs = <b>77 combinaisons</b> jusqu\'à en trouver une qui marche. Avec plusieurs clés, ça va vite.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
+V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">L\'app teste UN SEUL clip à la fois, avec 800ms entre chaque essai (16 combinaisons). Pas de blocage réseau.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
 
 function view(){if(TASK)return workView();const s=P.sub[page]||'cfg';const v=V[page];const fn=v[s]||v.cfg;return fn?fn():'<div class="hero"><div class="guide er">Vue introuvable</div></div>'}
 function render(keep){
@@ -270,7 +271,7 @@ function keysChips(){const e=$('#kl');if(!e)return;e.innerHTML=KEYS.list.map((k,
 const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function qHtml(ok,left,total){
   if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Télécharge-les et assemble-les dans CapCut.','go');
-  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 L\'app va tester 77 combinaisons jusqu\'à en trouver une qui marche.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
+  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 L\'app va tester 16 combinaisons, un clip à la fois.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
   if(!Q.on)return guide('<b>En pause.</b> '+ok+' prête(s), '+left+' restante(s).','wt')+'<div class="rw">'+btn('qstart','▶ Reprendre','big')+'</div>';
   if(Q.st=='full')return guide('<b>⏳ Nouvel essai dans <b id="cd" style="font:600 18px Orbitron">'+fmt((Q.next-Date.now())/1000)+'</b></b>','wt')+'<div class="rw">'+btn('qnow','Tester','sm')+btn('qpause','❚❚ Pause','sm')+'</div>';
   return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s).'+(VID_MODE?' <b>Mode: '+VID_MODE+' + '+VID_FIELD+'</b>':''))+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
@@ -303,6 +304,8 @@ async function launch(c){
       const body={model:VID,prompt:vp(c),mode:modeVal,aspect_ratio:P.ratio};
       body[fieldName]=fr;
       tried++;
+      // Délai de 800ms entre chaque essai (sauf le premier)
+      if(tried>1)await sleep(800);
       let r;
       try{
         r=await fetch(API+'/videos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)});
@@ -365,7 +368,8 @@ setInterval(function(){
   if(!P||!Q.on||Q.busy||Date.now()<Q.next)return;
   const a=P.clips,todo=a.filter(c=>c.vst=='wait'&&c.img),run=a.filter(c=>c.vst=='run').length;
   if(!todo.length){if(!run){Q.on=false;Q.st='idle';save();qui()}return}
-  if(run>=2)return;
+  // UN SEUL CLIP À LA FOIS
+  if(run>=1)return;
   Q.busy=true;
   launch(todo[0]).catch(e=>{log('er','file : '+e.message);Q.on=false;Q.st='paused'}).then(()=>{Q.busy=false});
 },500);
@@ -377,7 +381,7 @@ function qstart(){
   if(Q.st=='paused'||Q.st=='idle')Q.st='run';
   if(Q.st!='full')Q.next=0;
   wake();save();qui();
-  log('in','test des 77 combinaisons · '+KEYS.list.length+' clé(s)');
+  log('in','test des 16 combinaisons · '+KEYS.list.length+' clé(s) · 1 clip à la fois');
 }
 
 const OK_DURING=['con','stoptask','retrytask','canceltask'];
