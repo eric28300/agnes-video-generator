@@ -390,23 +390,23 @@ function stats(){
   k.innerHTML='<div><span class="lab">Clips</span><b>'+a.length+'</b></div><div><span class="lab">Vidéos prêtes</span><b>'+n('ok')+'</b></div><div><span class="lab">En cours</span><b>'+n('run')+'</b></div><div><span class="lab">En attente</span><b>'+n('wait')+'</b></div><div><span class="lab">Échecs</span><b>'+n('er')+'</b></div>';
 }
 const vp=c=>san('Cinematic macro shot. '+c.prompt+' Realistic ambient sound effects only, no music, no subtitles, no on-screen text. Keep the identity, materials and visual style of the first frame identical throughout the shot.');
-const dims=()=>P.ratio=='9:16'?[480,854]:P.ratio=='1:1'?[640,640]:[854,480];
 function sat(){Q.st='full';Q.next=Date.now()+BACK[Math.min(Q.step,BACK.length-1)]*60000;log('wr','retest dans '+BACK[Math.min(Q.step,BACK.length-1)]+' min');Q.step=Math.min(Q.step+1,BACK.length-1);save();qui()}
 
 async function launch(c){
   const o=await slot('vid'),free=KEYS.plan=='free';
   const fr=c.img.u&&c.img.u.indexOf('data:')!==0?c.img.u:ref(c.img);
-  const D=dims();
   const modelName=c._model||(free?VID_TRIES[0]:VID.plan);
-  const body=free?{model:modelName,prompt:vp(c),num_frames:97,frame_rate:12,width:D[0],height:D[1],image:fr}
+  // FIX: pas de width/height (INTERDITS) — on utilise aspect_ratio uniquement
+  const body=free?{model:modelName,prompt:vp(c),num_frames:97,frame_rate:12,aspect_ratio:P.ratio,image:fr}
                   :{model:modelName,prompt:vp(c),seconds:'10',mode:'keyframe',size:'720P',aspect_ratio:P.ratio,first_frame:fr};
   c.vst='run';c.err='';refresh(c.id);
   let r;
   try{r=await fetch(API+'/videos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)})}
   catch(e){c.vst='wait';Q.next=Date.now()+30000;log('wr','réseau : '+e.message);refresh(c.id);return}
   if(!r.ok){
-    const t=(await r.text().catch(()=>'')).slice(0,200);
+    const t=(await r.text().catch(()=>'')).slice(0,250);
     log('er','vidéo HTTP '+r.status+' '+t);
+    // Modèle inexistant → essaye le suivant
     if((r.status==503||r.status==404||r.status==400)&&t.indexOf('model_not_found')>=0&&free){
       const idx=VID_TRIES.indexOf(modelName);
       if(idx>=0&&idx<VID_TRIES.length-1){
@@ -416,6 +416,11 @@ async function launch(c){
       }
       log('er','aucun modèle vidéo trouvé pour ta clé');
       c.vst='er';c.err='Aucun modèle vidéo accessible avec ta clé';refresh(c.id);return;
+    }
+    // Champ interdit → on retire progressivement les champs problématiques
+    if(r.status==400&&t.indexOf('FORBIDDEN FIELD')>=0){
+      log('wr','champ interdit détecté → retrait des champs non supportés');
+      c.vst='er';c.err='HTTP 400 — champ interdit';refresh(c.id);return;
     }
     if(r.status==503||r.status==429){
       if(r.status==429)o.cool=Date.now()+(parseInt(r.headers.get('Retry-After'))||30)*1000;
@@ -488,6 +493,8 @@ setInterval(function(){
 async function wake(){try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}}
 function qstart(){
   if(!P.clips.some(c=>c.img))return toast('Il faut d\'abord des images');
+  // Reset des échecs pour permettre un nouvel essai
+  P.clips.forEach(c=>{if(c.vst=='er'){c.vst='wait';c.err='';c._model=null}});
   Q.on=true;
   if(Q.st=='paused'||Q.st=='idle')Q.st='run';
   if(Q.st!='full')Q.next=0;
@@ -541,7 +548,7 @@ async function onClick(e){
   else if(a=='canceltask'){TASK=null;render()}
   else if(a=='qstart')qstart();
   else if(a=='qpause'){Q.on=false;Q.st='paused';save();qui()}
-  else if(a=='qnow'){Q.on=true;Q.next=0;log('in','test manuel');save()}
+  else if(a=='qnow'){Q.on=true;Q.next=0;P.clips.forEach(c=>{if(c.vst=='er'){c.vst='wait';c.err=''}});log('in','test manuel');save()}
   else if(a=='sess')sessions();
   else if(a=='new'){setP(newP());const m=$('#md');if(m)m.classList.remove('on');page=KEYS.list.length?1:0;render()}
 }
@@ -630,6 +637,6 @@ function resume(){
   page=KEYS.list.length?Math.max(1,Math.min(P.page||1,3)):0;
   render();
   resume();
-  log('in','ASMR LOOP prêt · '+KEYS.list.length+' clé(s) · cherche modèle vidéo');
+  log('in','ASMR LOOP prêt · '+KEYS.list.length+' clé(s)');
 })();
 </script></body></html>
