@@ -47,6 +47,7 @@ button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-col
 #con{position:fixed;left:0;right:0;bottom:0;height:34vh;z-index:50;background:#080810;color:#7dd3fc;transform:translateY(100%);transition:transform .25s;display:flex;flex-direction:column;border-top:1px solid var(--ln)}#con.on{transform:none}
 #lb{flex:1;overflow:auto;padding:8px 12px;font:12px/1.5 var(--m)}.lg.er{color:#ff8a8a}.lg.wr{color:#ffc477}.lg.ok{color:#7dffb5}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:6px;align-items:center}#toast div{background:#14141f;color:#fff;font:12px var(--m);padding:8px 14px;border:1px solid var(--a);border-radius:5px}
+.kp{display:flex;gap:22px;flex-wrap:wrap;margin:12px 0}.kp b{font:600 22px Orbitron;display:block}
 @media(max-width:700px){h2{font-size:20px}.st{padding:4px 6px;font-size:9px}}
 </style></head><body>
 <header><div class="logo">ASMR<b> LOOP</b><i>VISUEL · SANS VOIX · SANS VISAGE</i></div><nav id="steps"></nav>
@@ -65,7 +66,6 @@ const RPM={free:{img:10,vid:1},plan:{img:100,vid:5}};
 const STEPS=['Clés','Prompts','Images','Vidéos'];
 const BACK=[3,6,12,24,48,96];
 
-/* Presets ASMR prêts à l'emploi */
 const PRESETS=[
  {n:'Sablier liquide',p:"Plan macro ultra-réaliste, objectif 100mm, d'un sablier en verre noir mat posé sur une surface en obsidienne polie. À l'intérieur, un liquide visqueux et lumineux composé de filaments cyan et or flotte en apesanteur. Une tige en bois brut descend lentement et perce la paroi du sablier. Le verre se fissure en fractales lumineuses, libérant une poussière d'étoiles qui tourbillonne. Éclairage volumétrique doux, contraste élevé, fond noir profond. Style ASMR macro, ultra-détaillé, cinématographique, 8K. Physique satisfaisante, mouvement lent et hypnotique. Caméra : plan fixe."},
  {n:'Fraise en verre',p:"Plan macro ultra-réaliste, objectif 100mm, d'une fraise en verre transparent posée sur une surface en verre noir polie. Un couteau en argent descend lentement et tranche la fraise. Une fractale de lumière jaillit de l'intérieur. Les morceaux tombent au ralenti, révélant un cœur de verre liquide incandescent. Éclairage volumétrique doux, fond noir profond, reflets brillants. Style ASMR macro, 8K. Physique satisfaisante, mouvement lent. Caméra : plan fixe."},
@@ -89,18 +89,13 @@ const uid=()=>Math.random().toString(36).slice(2,9);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const san=t=>String(t==null?'':t).replace(/[‘’]/g,"'").replace(/[“”«»]/g,'"').replace(/[–—]/g,'-').replace(/…/g,'...').replace(/[\u00a0\u202f]/g,' ');
 
-/* ═════════════════════════════════════════════════════════════════════
-   STATE
-   ═════════════════════════════════════════════════════════════════════ */
 let db,P=null,Q=null,page=0,F=1,TASK=null;
 const KEYS={list:[],plan:'free'};
 const AR=()=>(P?P.ratio:'9:16').replace(':','/');
 const ref=i=>i&&(i.d||i.u);
 const mkKey=k=>({k,img:0,vid:0,cool:0,bad:0,off:false});
 
-/* ═════════════════════════════════════════════════════════════════════
-   STOCKAGE
-   ═════════════════════════════════════════════════════════════════════ */
+/* STOCKAGE */
 function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('asmr_loop_v1',1);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('clips'))d.createObjectStore('clips',{keyPath:'id'});if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'})}})}
 const tx=(s,m,f)=>new Promise((res,rej)=>{try{const r=f(db.transaction(s,m).objectStore(s));r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});
 let mode='idb';const mem={clips:{},config:{}},lsK=(s,k)=>'al1_'+s+'_'+k;
@@ -111,15 +106,11 @@ async function dbDel(s,k){delete mem[s][k];if(db&&mode=='idb'){try{return await 
 async function dbAll(s){if(db&&mode=='idb'){try{return await tx(s,'readonly',o=>o.getAll())}catch(e){fall(e)}}const o=Object.assign({},mem[s]);try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n.startsWith(lsK(s,''))){const v=JSON.parse(localStorage.getItem(n));o[v.key||v.id]=v}}}catch(e){}return Object.values(o)}
 let svT;function save(){if(!P)return;clearTimeout(svT);svT=setTimeout(()=>{P.upd=Date.now();dbPut('clips',P).catch(e=>log('er','sauvegarde : '+e.message))},350)}
 
-/* ═════════════════════════════════════════════════════════════════════
-   LOG / TOAST
-   ═════════════════════════════════════════════════════════════════════ */
+/* LOG / TOAST */
 function log(l,m){const d=document.createElement('div');d.className='lg '+l;d.textContent=new Date().toLocaleTimeString('fr-FR')+'  '+m;const b=$('#lb');if(!b)return;b.appendChild(d);while(b.children.length>400)b.firstChild.remove();b.scrollTop=b.scrollHeight}
 function toast(m){const d=document.createElement('div');d.textContent=m;$('#toast').appendChild(d);setTimeout(()=>d.remove(),4200)}
 
-/* ═════════════════════════════════════════════════════════════════════
-   PLANIFICATEUR MULTI-CLÉS
-   ═════════════════════════════════════════════════════════════════════ */
+/* PLANIFICATEUR MULTI-CLÉS */
 async function slot(kind){
   for(;;){
     if(TASK&&TASK.stop)throw new Error('stop');
@@ -151,9 +142,7 @@ async function call(kind,url,body,tries){
   throw err||new Error('échec');
 }
 
-/* ═════════════════════════════════════════════════════════════════════
-   IMAGES
-   ═════════════════════════════════════════════════════════════════════ */
+/* IMAGES */
 function toData(u){
   return new Promise(resolve=>{
     if(!u)return resolve(null);
@@ -185,29 +174,18 @@ function ensureRef(img){
   return img._conv;
 }
 
-/* ═════════════════════════════════════════════════════════════════════
-   MODÈLE DE PROJET — simplifié pour ASMR
-   ═════════════════════════════════════════════════════════════════════ */
+/* MODÈLE */
 const newP=()=>({
-  id:uid()+uid(),
-  created:Date.now(),
-  upd:Date.now(),
-  page:0,last:0,max:0,
-  ratio:'9:16',
-  clips:[],      // chaque clip = {id, prompt, img, video, vst, busy, err, task, seen}
-  nclips:3,
-  sub:{},
+  id:uid()+uid(),created:Date.now(),upd:Date.now(),
+  page:0,last:0,max:0,ratio:'9:16',
+  clips:[],nclips:3,sub:{},
   q:{step:0,next:0,st:'idle',on:false}
 });
 function setP(p){
   P=p;
-  P.clips=P.clips||[];
-  P.sub=P.sub||{};
+  P.clips=P.clips||[];P.sub=P.sub||{};
   Q=P.q=P.q||{step:0,next:0,st:'idle',on:false};
-  P.clips.forEach(c=>{
-    c.busy=false;
-    if(c.vst=='run'&&!c.task)c.vst='wait';
-  });
+  P.clips.forEach(c=>{c.busy=false;if(c.vst=='run'&&!c.task)c.vst='wait'});
   dbPut('config',{key:'last',v:P.id});
 }
 const anyBusy=()=>P.clips.some(c=>c.busy);
@@ -215,26 +193,17 @@ function find(id){
   for(let i=0;i<P.clips.length;i++)if(P.clips[i].id==id)return{t:'c',o:P.clips[i],i:i};
   return null;
 }
-
-/* ═════════════════════════════════════════════════════════════════════
-   GÉNÉRATION D'IMAGE POUR UN CLIP
-   ═════════════════════════════════════════════════════════════════════ */
 async function genImg(id){
   const f=find(id);
   if(!f||f.o.busy)return;
   const o=f.o;
   o.busy=true;o.err='';refresh(id);
-  try{
-    o.img=await mkImg(o.prompt,null,P.ratio);
-  }catch(e){
-    if(e.message!='stop'){o.err='Échec : '+String(e.message).slice(0,80);log('er','image : '+e.message)}
-  }
+  try{o.img=await mkImg(o.prompt,null,P.ratio)}
+  catch(e){if(e.message!='stop'){o.err='Échec : '+String(e.message).slice(0,80);log('er','image : '+e.message)}}
   o.busy=false;refresh(id);save();
 }
 
-/* ═════════════════════════════════════════════════════════════════════
-   AFFICHAGE
-   ═════════════════════════════════════════════════════════════════════ */
+/* AFFICHAGE */
 const guide=(h,c)=>'<div class="guide '+(c||'')+'"><div>'+h+'</div></div>';
 const hd=(n,t)=>'<div class="lab">ÉTAPE '+n+' / 4</div><h2>'+t+'</h2>';
 const btn=(a,l,c,x)=>'<button class="'+(c||'')+'" data-a="'+a+'" '+(x||'')+'>'+l+'</button>';
@@ -245,25 +214,21 @@ const imBox=(o,r)=>'<div class="im" style="aspect-ratio:'+(r||AR())+'">'+(o.img?
 const clipCard=(c,i)=>'<div class="cd" id="c-'+c.id+'"><div class="lab">Clip '+(i+1)+'</div>'+imBox(c)+
   '<textarea data-f="prompt" data-id="'+c.id+'" rows="5" placeholder="Décris ton visuel ASMR…" '+(c.busy?'disabled':'')+'>'+esc(c.prompt)+'</textarea>'+
   '<div class="rw">'+btn('genimg','↻ Générer l\'image','sm','data-id="'+c.id+'" '+(c.busy?'disabled':''))+
-  '<label class="sm btn" style="cursor:pointer;padding:6px 11px;font:600 10px var(--m);letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--ink);border-radius:5px;background:#14141f;color:var(--ink)">⬆ Photo<input type="file" accept="image/*" hidden data-up="'+c.id+'"></label>'+
+  '<label class="sm btn" style="cursor:pointer">⬆ Photo<input type="file" accept="image/*" hidden data-up="'+c.id+'"></label>'+
   btn('delclip','🗑','sm','data-id="'+c.id+'" '+(c.busy?'disabled':''))+'</div>'+
   (c.err?'<div class="lab" style="color:var(--er);margin-top:4px">'+esc(c.err)+'</div>':'')+'</div>';
 const tile=(c,i)=>'<div class="tl '+(c.vst||'wait')+'" id="t-'+c.id+'"><div class="th" style="aspect-ratio:'+AR()+'">'+
   (c.video?'<video src="'+esc(c.video)+'" controls playsinline preload="metadata" data-id="'+c.id+'"></video>':c.img?'<img src="'+esc(ref(c.img))+'" alt="">':'')+
   '<b class="tg">'+(i+1)+'</b></div><div class="tx">'+esc(c.prompt.slice(0,60))+'…</div></div>';
-const LBL={wait:'en attente',run:'en cours',ok:'prête',er:'échec'};
 function refresh(id){
-  const f=find(id);
-  if(!f)return;
+  const f=find(id);if(!f)return;
   const set=(p,h)=>{const a=document.getElementById(p+id);if(a){const t=document.createElement('div');t.innerHTML=h;a.replaceWith(t.firstElementChild)}};
   if(f.t=='c')set('c-',clipCard(f.o,f.i));
-  if(page==3)stats();
+  if(page==3){stats();const tl=document.getElementById('t-'+id);if(tl){const t=document.createElement('div');t.innerHTML=tile(f.o,f.i+1);tl.replaceWith(t.firstElementChild)}}
   syncNext();
 }
 
-/* ═════════════════════════════════════════════════════════════════════
-   TÂCHE
-   ═════════════════════════════════════════════════════════════════════ */
+/* TÂCHE */
 function fd(t){const it={t:t,s:'run',at:Date.now()};TASK.items.push(it);paintFeed();return it}
 function fdDone(it,t){it.s='ok';if(t)it.t=t;paintFeed()}
 function paintFeed(){const e=$('#feed');if(!e||!TASK)return;const n=Date.now();e.innerHTML=TASK.items.map(i=>'<div class="fi '+i.s+'"><span class="ic">'+(i.s=='ok'?'✓':i.s=='er'?'✕':'<i class="sp2"></i>')+'</span><span>'+esc(i.t)+'</span>'+(i.s=='run'?'<em>'+Math.round((n-i.at)/1000)+' s</em>':'')+'</div>').join('')}
@@ -296,22 +261,11 @@ async function task(step,title,fn,after){
 function retryTask(){const T=TASK;if(!T||!T.err)return;TASK=null;task(T.step,T.title,T.fn,T.after)}
 setInterval(()=>{if(!TASK||TASK.err)return;const e=$('#el');if(e)e.textContent=Math.round((Date.now()-TASK.start)/1000)+' s';paintFeed()},1000);
 
-/* ═════════════════════════════════════════════════════════════════════
-   NAVIGATION
-   ═════════════════════════════════════════════════════════════════════ */
-function go(n){if(TASK)return;if(page>0)P.last=page;page=n;render();onEnter()}
+/* NAVIGATION */
+function go(n){if(TASK)return;if(page>0)P.last=page;page=n;render()}
 function done(step,sub){P.sub[step]=sub;save();render()}
-function onEnter(){
-  if(TASK||!P)return;
-  const s=P.sub[page]||'cfg';
-  if(s!='cfg')return;
-  if(page==2)runImages();
-  // page 3 : l'utilisateur clique pour lancer les vidéos
-}
 
-/* ═════════════════════════════════════════════════════════════════════
-   PIPELINES
-   ═════════════════════════════════════════════════════════════════════ */
+/* PIPELINE */
 function runImages(){
   const todo=P.clips.filter(c=>!c.img);
   if(!todo.length){done(2,'rev');return}
@@ -336,9 +290,7 @@ function runImages(){
   },()=>done(2,'rev'));
 }
 
-/* ═════════════════════════════════════════════════════════════════════
-   VUES
-   ═════════════════════════════════════════════════════════════════════ */
+/* VUES */
 const V={0:{},1:{},2:{},3:{}};
 
 V[0].cfg=()=>'<div class="hero">'+hd(1,'Tes clés API <b>Agnès</b>')+
@@ -358,8 +310,13 @@ V[1].cfg=()=>'<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+
   '<div class="gc">'+[[1,'1 clip'],[3,'3 clips'],[5,'5 clips'],[8,'8 clips'],[10,'10 clips']].map(n=>'<button class="'+((P.nclips||3)==n[0]?'sel':'')+'" data-a="nclips" data-n="'+n[0]+'">'+n[1]+'</button>').join('')+'</div>'+
   '<h3>4 · Tes clips</h3>'+
   '<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+
-  '<div class="rw" style="margin-top:10px">'+btn('addclip','+ Ajouter un clip')+btn('fillpreset','✦ Remplir tous les clips avec le preset actif','sm')+'</div>'+
+  '<div class="rw" style="margin-top:10px">'+btn('addclip','+ Ajouter un clip')+'</div>'+
   foot(btn('go','← Précédent','','data-n="0"'),nextBtn('go','Générer les images',P.clips.length?'data-n="2"':'disabled data-off="1"'))+'</div>';
+
+V[2].cfg=()=>'<div class="hero">'+hd(3,'Prêt à générer les <b>images</b>')+
+  guide('✓ Prompts validés. 👉 Clique sur le bouton pour lancer la création des images. Chaque image servira de point de départ pour une vidéo.')+
+  '<div class="rw">'+btn('startimg','✦ Lancer la génération des images','big')+'</div>'+
+  foot(btn('go','← Précédent','','data-n="1"'))+'</div>';
 
 V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+
   guide('✓ Images prêtes. 👉 Vérifie-les, modifie un prompt si besoin et régénère. Puis passe aux vidéos.','go')+
@@ -368,9 +325,8 @@ V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+
   foot(btn('go','← Précédent','','data-n="1"'),nextBtn('go','Passer aux vidéos','data-n="3"'))+'</div>';
 
 V[3].cfg=()=>{
-  const withImg=P.clips.filter(c=>c.img).length;
   return '<div class="hero">'+hd(4,'Les <b>vidéos</b>')+
-  '<p class="sub">Chaque image devient une vidéo via Agnès. La file d\'attente peut être saturée : l\'app envoie les clips un par un et attend automatiquement (3, 6, 12, 24… minutes). <b>Garde cet onglet ouvert.</b></p>'+
+  '<p class="sub">Chaque image devient une vidéo via Agnès. La file d\'attente peut être saturée : l\'app envoie les clips un par un et attend automatiquement. <b>Garde cet onglet ouvert.</b></p>'+
   '<div class="cd" id="qp" style="margin:12px 0"></div>'+
   '<div class="kp" id="kp"></div>'+
   '<div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+
@@ -381,7 +337,8 @@ function view(){
   if(TASK)return workView();
   const s=P.sub[page]||'cfg';
   const v=V[page];
-  return (v[s]||v.cfg||'')();
+  const fn=v[s]||v.cfg;
+  return fn?fn():'<div class="hero"><div class="guide er">Vue introuvable (étape '+page+', sous-état '+s+')</div></div>';
 }
 function render(keep){
   P.max=Math.max(P.max||0,page);
@@ -400,16 +357,14 @@ function render(keep){
 }
 function keysChips(){const e=$('#kl');if(!e)return;e.innerHTML=KEYS.list.map((k,i)=>'<span class="chip '+(k.off?'off':'')+'">#'+(i+1)+' …'+esc(k.k.slice(-4))+'</span>').join('')}
 
-/* ═════════════════════════════════════════════════════════════════════
-   FILE VIDÉO
-   ═════════════════════════════════════════════════════════════════════ */
+/* FILE VIDÉO */
 const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function qHtml(ok,left,total){
-  if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Télécharge-les et assemble-les dans CapCut pour faire ta vidéo de 1 minute.','go');
+  if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Télécharge-les et assemble-les dans CapCut.','go');
   if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt à créer les vidéos.</b> 👉 Clique sur le bouton : tout se passe automatiquement.')+'<div class="rw">'+btn('qstart','▶ Lancer la production des vidéos','big')+'</div>';
   if(!Q.on)return guide('<b>Production en pause.</b> '+ok+' prête(s), '+left+' restante(s).','wt')+'<div class="rw">'+btn('qstart','▶ Reprendre','big')+'</div>';
-  if(Q.st=='full')return guide('<b>⏳ File Agnès saturée.</b> Aucune requête envoyée pendant l\'attente. Prochain test dans <b id="cd" style="font:600 18px Orbitron">'+fmt((Q.next-Date.now())/1000)+'</b>','wt')+'<div class="lab">Paliers</div><div class="gc">'+BACK.map((m,i)=>'<i style="font:11px var(--m);font-style:normal;padding:3px 8px;border:1px solid '+(i==Q.step-1?'var(--b)':'var(--ln)')+';color:'+(i==Q.step-1?'var(--b)':'var(--dim)')+';border-radius:3px">'+m+' min</i>').join('')+'</div><div class="rw">'+btn('qnow','Tester maintenant','sm')+btn('qpause','❚❚ Pause','sm')+'</div>';
-  return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s). Les vidéos apparaissent au fur et à mesure.')+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
+  if(Q.st=='full')return guide('<b>⏳ File Agnès saturée.</b> Prochain test dans <b id="cd" style="font:600 18px Orbitron">'+fmt((Q.next-Date.now())/1000)+'</b>','wt')+'<div class="rw">'+btn('qnow','Tester maintenant','sm')+btn('qpause','❚❚ Pause','sm')+'</div>';
+  return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s).')+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
 }
 function qui(){
   const n=Date.now(),c=$('#qchip'),all=P?P.clips:[],ok=all.filter(c=>c.vst=='ok').length,left=all.filter(c=>c.vst!='ok'&&c.img).length;
@@ -428,7 +383,7 @@ function stats(){
   const k=$('#kp');if(!k)return;
   const a=P?P.clips:[];
   const n=s=>a.filter(c=>c.vst==s&&c.img).length;
-  k.innerHTML='<div class="kp"><b>'+a.length+'</b><span class="lab">Clips</span></div><div class="kp"><b>'+n('ok')+'</b><span class="lab">Vidéos prêtes</span></div><div class="kp"><b>'+n('run')+'</b><span class="lab">En cours</span></div><div class="kp"><b>'+n('wait')+'</b><span class="lab">En attente</span></div><div class="kp"><b>'+n('er')+'</b><span class="lab">Échecs</span></div>';
+  k.innerHTML='<div><span class="lab">Clips</span><b>'+a.length+'</b></div><div><span class="lab">Vidéos prêtes</span><b>'+n('ok')+'</b></div><div><span class="lab">En cours</span><b>'+n('run')+'</b></div><div><span class="lab">En attente</span><b>'+n('wait')+'</b></div><div><span class="lab">Échecs</span><b>'+n('er')+'</b></div>';
 }
 const vp=c=>san('Cinematic macro shot. '+c.prompt+' Realistic ambient sound effects only, no music, no subtitles, no on-screen text. Keep the identity, materials and visual style of the first frame identical throughout the shot.');
 const dims=()=>P.ratio=='9:16'?[480,854]:P.ratio=='1:1'?[640,640]:[854,480];
@@ -510,8 +465,7 @@ setInterval(function(){
   Q.busy=true;
   launch(todo[0]).catch(e=>{log('er','file : '+e.message);Q.on=false;Q.st='paused'}).then(()=>{Q.busy=false});
 },1000);
-let wl=null;
-async function wake(){try{if(navigator.wakeLock)wl=await navigator.wakeLock.request('screen')}catch(e){}}
+async function wake(){try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}}
 function qstart(){
   if(!P.clips.some(c=>c.img))return toast('Il faut d\'abord des images');
   Q.on=true;
@@ -521,9 +475,7 @@ function qstart(){
   log('in','production vidéo lancée');
 }
 
-/* ═════════════════════════════════════════════════════════════════════
-   ACTIONS
-   ═════════════════════════════════════════════════════════════════════ */
+/* ACTIONS */
 const OK_DURING=['con','stoptask','retrytask','canceltask'];
 async function onClick(e){
   const b=e.target.closest('[data-a]');
@@ -553,12 +505,6 @@ async function onClick(e){
     if(P.clips.length&&confirm('Remplacer le prompt du 1er clip par "'+p.n+'" ?')){P.clips[0].prompt=p.p;render(true)}
     else if(!P.clips.length)toast('Ajoute d\'abord un clip');
   }
-  else if(a=='fillpreset'){
-    if(!P.clips.length)return toast('Ajoute des clips d\'abord');
-    const last=P.clips[P.clips.length-1].prompt;
-    P.clips.forEach(c=>c.prompt=last);
-    render(true);toast('Tous les clips utilisent le dernier prompt');
-  }
   else if(a=='addclip'){
     const preset=PRESETS[P.clips.length%PRESETS.length];
     P.clips.push({id:uid(),prompt:preset.p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false});
@@ -569,6 +515,7 @@ async function onClick(e){
     P.clips=P.clips.filter(c=>c.id!=id);render(true);
   }
   else if(a=='genimg')genImg(id);
+  else if(a=='startimg')runImages();
   else if(a=='stoptask'){TASK.stop=true;toast('Arrêt en cours…')}
   else if(a=='retrytask')retryTask();
   else if(a=='canceltask'){TASK=null;render()}
@@ -576,7 +523,7 @@ async function onClick(e){
   else if(a=='qpause'){Q.on=false;Q.st='paused';save();qui()}
   else if(a=='qnow'){Q.on=true;Q.next=0;log('in','test manuel');save()}
   else if(a=='sess')sessions();
-  else if(a=='new'){setP(newP());$('#md')&&($('#md').classList.remove('on'));page=KEYS.list.length?1:0;render()}
+  else if(a=='new'){setP(newP());const m=$('#md');if(m)m.classList.remove('on');page=KEYS.list.length?1:0;render()}
 }
 document.addEventListener('click',e=>{onClick(e).catch(er=>{log('er','action : '+er.message);toast('Erreur : '+er.message)})});
 window.addEventListener('error',e=>{log('er',e.message)});
@@ -610,23 +557,25 @@ document.addEventListener('change',async e=>{
   }
 });
 async function sessions(){
+  let md=$('#md');
+  if(!md){document.body.insertAdjacentHTML('beforeend','<div id="md" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:70;display:none;align-items:center;justify-content:center;padding:16px"><div id="mdc" style="background:#14141f;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:20px;border:1px solid var(--a);border-radius:8px"></div></div>');md=$('#md')}
   const l=(await dbAll('clips')).sort((a,b)=>b.upd-a.upd);
-  $('#md')||document.body.insertAdjacentHTML('beforeend','<div id="md" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:70;display:none;align-items:center;justify-content:center;padding:16px"><div id="mdc" style="background:#14141f;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:20px;border:1px solid var(--a);border-radius:8px"></div></div>');
-  $('#mdc').innerHTML='<h3>Mes clips</h3><p class="sub">Tout est enregistré dans ce navigateur.</p><div class="rw">'+btn('new','+ Nouveau projet')+'<button class="sm" onclick="document.getElementById(\'md\').classList.remove(\'on\')">Fermer</button></div>'+
+  $('#mdc').innerHTML='<h3>Mes clips</h3><p class="sub">Tout est enregistré dans ce navigateur.</p><div class="rw">'+btn('new','+ Nouveau projet')+btn('closemd','Fermer','sm')+'</div>'+
     l.map(p=>{
       const ok=p.clips?p.clips.filter(c=>c.video).length:0;
       return '<div class="cd" style="margin-top:8px"><b>'+esc(p.title||'Projet ASMR')+'</b>'+(p.id==P.id?' · <span class="lab">en cours</span>':'')+
         '<div class="lab">'+new Date(p.upd).toLocaleString('fr-FR')+' · '+(p.clips?p.clips.length:0)+' clips · '+ok+' vidéos</div>'+
-        '<div class="rw">'+btn('open','Ouvrir','sm','data-id="'+p.id+'"')+'<button class="sm" data-a="delsess" data-id="'+p.id+'">Supprimer</button></div></div>';
+        '<div class="rw">'+btn('open','Ouvrir','sm','data-id="'+p.id+'"')+btn('delsess','Supprimer','sm','data-id="'+p.id+'"')+'</div></div>';
     }).join('');
-  $('#md').classList.add('on');
+  md.classList.add('on');
 }
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;
   const a=b.dataset.a,id=b.dataset.id;
+  if(a=='closemd'){const m=$('#md');if(m)m.classList.remove('on')}
   if(a=='open'){
     const p=await dbGet('clips',id);
-    if(p){setP(p);page=KEYS.list.length?Math.max(1,Math.min(p.page||1,3)):0;$('#md')&&$('#md').classList.remove('on');render();resume()}
+    if(p){setP(p);page=KEYS.list.length?Math.max(1,Math.min(p.page||1,3)):0;const m=$('#md');if(m)m.classList.remove('on');render();resume()}
   }
   if(a=='delsess'){
     if(!confirm('Supprimer ?'))return;
@@ -636,9 +585,7 @@ document.addEventListener('click',async e=>{
   }
 });
 
-/* ═════════════════════════════════════════════════════════════════════
-   INIT
-   ═════════════════════════════════════════════════════════════════════ */
+/* INIT */
 function resume(){
   P.clips.forEach(c=>{
     if(c.vst=='run'&&c.task){
