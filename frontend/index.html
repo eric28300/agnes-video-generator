@@ -63,6 +63,9 @@ const RPM={free:{img:10,vid:1},plan:{img:100,vid:5}};
 const STEPS=['Clés','Prompts','Images','Vidéos'];
 const BACK=[3,6,12,24,48,96];
 
+const MODES=['image_to_video','i2v','image','animate','video','text','default','generate','image2video','img2vid','keyframe'];
+const FIELDS=['image','first_frame','input_image','init_image','image_url','start_image','source_image'];
+
 const PRESETS=[
  {n:'Sablier liquide',p:"Plan macro ultra-réaliste, objectif 100mm, d'un sablier en verre noir mat posé sur une surface en obsidienne polie. À l'intérieur, un liquide visqueux et lumineux composé de filaments cyan et or flotte en apesanteur. Une tige en bois brut descend lentement et perce la paroi du sablier. Le verre se fissure en fractales lumineuses, libérant une poussière d'étoiles qui tourbillonne. Éclairage volumétrique doux, contraste élevé, fond noir profond. Style ASMR macro, ultra-détaillé, cinématographique, 8K. Physique satisfaisante, mouvement lent et hypnotique. Caméra : plan fixe."},
  {n:'Fraise en verre',p:"Plan macro ultra-réaliste, objectif 100mm, d'une fraise en verre transparent posée sur une surface en verre noir polie. Un couteau en argent descend lentement et tranche la fraise. Une fractale de lumière jaillit de l'intérieur. Les morceaux tombent au ralenti, révélant un cœur de verre liquide incandescent. Éclairage volumétrique doux, fond noir profond, reflets brillants. Style ASMR macro, 8K. Physique satisfaisante, mouvement lent. Caméra : plan fixe."},
@@ -89,19 +92,7 @@ const AR=()=>(P?P.ratio:'9:16').replace(':','/');
 const ref=i=>i&&(i.d||i.u);
 const mkKey=k=>({k,img:0,vid:0,cool:0,bad:0,off:false});
 
-/* 9 stratégies à tester automatiquement */
-const STRATEGIES=[
- {n:'A',d:'mode+first_frame+seconds+size',f:c=>({model:VID,prompt:vp(c),mode:'keyframe',first_frame:c.fr,seconds:'5',size:'720P',aspect_ratio:P.ratio})},
- {n:'B',d:'mode+image (sans first_frame)',f:c=>({model:VID,prompt:vp(c),mode:'keyframe',image:c.fr,seconds:'5',size:'720P',aspect_ratio:P.ratio})},
- {n:'C',d:'mode+first_frame (sans seconds)',f:c=>({model:VID,prompt:vp(c),mode:'keyframe',first_frame:c.fr,aspect_ratio:P.ratio})},
- {n:'D',d:'mode+image (sans seconds)',f:c=>({model:VID,prompt:vp(c),mode:'keyframe',image:c.fr,aspect_ratio:P.ratio})},
- {n:'E',d:'first_frame sans mode',f:c=>({model:VID,prompt:vp(c),first_frame:c.fr,seconds:'5',size:'720P',aspect_ratio:P.ratio})},
- {n:'F',d:'image sans mode',f:c=>({model:VID,prompt:vp(c),image:c.fr,seconds:'5',size:'720P',aspect_ratio:P.ratio})},
- {n:'G',d:'type+first_frame',f:c=>({model:VID,prompt:vp(c),type:'keyframe',first_frame:c.fr,aspect_ratio:P.ratio})},
- {n:'H',d:'mode=image_to_video+image',f:c=>({model:VID,prompt:vp(c),mode:'image_to_video',image:c.fr,aspect_ratio:P.ratio})},
- {n:'I',d:'mode=image_to_video+first_frame',f:c=>({model:VID,prompt:vp(c),mode:'image_to_video',first_frame:c.fr,aspect_ratio:P.ratio})}
-];
-let VID_STRAT=null;
+let VID_MODE=null,VID_FIELD=null;
 
 function vp(c){return san('Cinematic macro shot. '+c.prompt+' Realistic ambient sound effects only, no music, no subtitles, no on-screen text. Keep the identity, materials and visual style of the first frame identical throughout the shot.')}
 
@@ -199,7 +190,7 @@ const foot=(prev,next)=>'<div class="ft">'+(prev||'<span></span>')+(next||'')+'<
 const nextBtn=(a,l,x)=>'<button class="big" id="nx" data-a="'+a+'" data-lbl="'+esc(l)+'" '+(x||'')+'>'+l+' →</button>';
 function syncNext(){const b=$('#nx');if(!b)return;const bz=anyBusy();b.disabled=bz||b.dataset.off=='1';b.textContent=bz?'Images en cours…':b.dataset.lbl+' →'}
 const imBox=(o,r)=>'<div class="im" style="aspect-ratio:'+(r||AR())+'">'+(o.img?'<img src="'+esc(ref(o.img))+'" alt="">':'<span>'+(o.busy?'création…':'pas d\'image')+'</span>')+(o.busy?'<i class="sp"></i>':'')+'</div>';
-const clipCard=(c,i)=>'<div class="cd" id="c-'+c.id+'"><div class="lab">Clip '+(i+1)+(c._strat?' · strat '+c._strat:'')+'</div>'+imBox(c)+
+const clipCard=(c,i)=>'<div class="cd" id="c-'+c.id+'"><div class="lab">Clip '+(i+1)+'</div>'+imBox(c)+
   '<textarea data-f="prompt" data-id="'+c.id+'" rows="5" '+(c.busy?'disabled':'')+'>'+esc(c.prompt)+'</textarea>'+
   '<div class="rw">'+btn('genimg','↻ Image','sm','data-id="'+c.id+'" '+(c.busy?'disabled':''))+
   '<label class="sm btn" style="cursor:pointer">⬆ Photo<input type="file" accept="image/*" hidden data-up="'+c.id+'"></label>'+
@@ -228,12 +219,7 @@ async function task(step,title,fn,after){
   TASK={step:step,title:title,fn:fn,after:after,items:[],start:Date.now(),stop:false,err:null,pg:null};
   page=step;render();
   try{await fn();chk()}
-  catch(e){
-    const T=TASK;
-    if(e.message=='stop'){TASK=null;toast('Arrêté');render();return}
-    T.items.forEach(i=>{if(i.s=='run')i.s='er'});
-    T.err=e.message;log('er',title+' : '+e.message);render();paintFeed();return;
-  }
+  catch(e){const T=TASK;if(e.message=='stop'){TASK=null;toast('Arrêté');render();return}T.items.forEach(i=>{if(i.s=='run')i.s='er'});T.err=e.message;log('er',title+' : '+e.message);render();paintFeed();return}
   TASK=null;after();
 }
 function retryTask(){const T=TASK;if(!T||!T.err)return;TASK=null;task(T.step,T.title,T.fn,T.after)}
@@ -264,7 +250,7 @@ V[1].cfg=()=>'<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+guide('👉 Ch
   foot(btn('go','← Précédent','','data-n="0"'),nextBtn('go','Générer les images',P.clips.length?'data-n="2"':'disabled data-off="1"'))+'</div>';
 V[2].cfg=()=>'<div class="hero">'+hd(3,'Prêt à générer les <b>images</b>')+guide('✓ Clique sur le bouton pour lancer la création des images.')+'<div class="rw">'+btn('startimg','✦ Lancer la génération','big')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'))+'</div>';
 V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+guide('✓ Vérifie-les, régénère si besoin, puis passe aux vidéos.','go')+'<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'),nextBtn('go','Passer aux vidéos','data-n="3"'))+'</div>';
-V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">L\'app essaie automatiquement 9 formats de requête jusqu\'à en trouver un qui fonctionne avec ta clé. Regarde le journal pour voir la progression.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
+V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">L\'app teste automatiquement 11 modes × 7 champs = <b>77 combinaisons</b> jusqu\'à en trouver une qui marche. Sans rate limit pour les erreurs 400 (elles ne consomment pas de quota).</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
 
 function view(){if(TASK)return workView();const s=P.sub[page]||'cfg';const v=V[page];const fn=v[s]||v.cfg;return fn?fn():'<div class="hero"><div class="guide er">Vue introuvable</div></div>'}
 function render(keep){
@@ -283,16 +269,16 @@ function keysChips(){const e=$('#kl');if(!e)return;e.innerHTML=KEYS.list.map((k,
 const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function qHtml(ok,left,total){
   if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Télécharge-les et assemble-les dans CapCut.','go');
-  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 L\'app va tester 9 formats automatiquement.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
+  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 L\'app va tester 77 combinaisons jusqu\'à en trouver une qui marche.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
   if(!Q.on)return guide('<b>En pause.</b> '+ok+' prête(s), '+left+' restante(s).','wt')+'<div class="rw">'+btn('qstart','▶ Reprendre','big')+'</div>';
   if(Q.st=='full')return guide('<b>⏳ Nouvel essai dans <b id="cd" style="font:600 18px Orbitron">'+fmt((Q.next-Date.now())/1000)+'</b></b>','wt')+'<div class="rw">'+btn('qnow','Tester','sm')+btn('qpause','❚❚ Pause','sm')+'</div>';
-  return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s).'+(VID_STRAT?' <b>Stratégie '+VID_STRAT+'</b>':''))+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
+  return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s).'+(VID_MODE?' <b>Mode: '+VID_MODE+' + '+VID_FIELD+'</b>':''))+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
 }
 function qui(){
   const n=Date.now(),c=$('#qchip'),all=P?P.clips:[],ok=all.filter(c=>c.vst=='ok').length,left=all.filter(c=>c.vst!='ok'&&c.img).length;
   if(c){c.style.display=all.some(c=>c.img)?'':'none';c.textContent='VIDÉO · '+(!Q.on?(ok==all.length&&all.length?'terminé':'en pause'):'en cours'+(Q.next>n?' · '+fmt((Q.next-n)/1000):''));c.className='chip '+(!Q.on?'off':'')}
   const e=$('#qp');if(!e||page!=3||TASK)return;
-  const sig=[Q.st,Q.on,Q.step,ok,left,all.length,VID_STRAT].join();
+  const sig=[Q.st,Q.on,Q.step,ok,left,all.length,VID_MODE,VID_FIELD].join();
   if(e.dataset.sig!=sig){e.dataset.sig=sig;e.innerHTML=qHtml(ok,left,all.length)}
   const cd=$('#cd');if(cd)cd.textContent=fmt((Q.next-n)/1000);
 }
@@ -300,48 +286,70 @@ function stats(){const k=$('#kp');if(!k)return;const a=P?P.clips:[];const n=s=>a
 function sat(){Q.st='full';Q.next=Date.now()+BACK[Math.min(Q.step,BACK.length-1)]*60000;log('wr','retest dans '+BACK[Math.min(Q.step,BACK.length-1)]+' min');Q.step=Math.min(Q.step+1,BACK.length-1);save();qui()}
 
 async function launch(c){
-  const o=await slot('vid');
+  const o=KEYS.list.find(k=>!k.off)||KEYS.list[0];
+  if(!o)return toast('Aucune clé active');
   const fr=c.img.u&&c.img.u.indexOf('data:')!==0?c.img.u:ref(c.img);
-  const ctx={fr:fr};
   c.vst='run';c.err='';refresh(c.id);
 
-  // Ordre : stratégie gagnante en premier, sinon A→I
-  let order=STRATEGIES.slice();
-  if(VID_STRAT){const w=order.find(s=>s.n==VID_STRAT);order=[w].concat(order.filter(s=>s.n!=VID_STRAT))}
+  // Si on connaît déjà la bonne combinaison, on l'utilise directement
+  let modes=VID_MODE?[VID_MODE].concat(MODES.filter(m=>m!=VID_MODE)):MODES.slice();
+  let fields=VID_FIELD?[VID_FIELD].concat(FIELDS.filter(f=>f!=VID_FIELD)):FIELDS.slice();
 
-  for(const strat of order){
-    const body=strat.f(ctx);
-    log('in','test stratégie '+strat.n+' ('+strat.d+')');
-    let r;
-    try{r=await fetch(API+'/videos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)})}
-    catch(e){log('wr','strat '+strat.n+' réseau : '+e.message);continue}
-    if(r.ok){
-      const d=await r.json();
-      const id=d.video_id||d.id||d.task_id||(d.data&&(d.data.video_id||d.data.id));
-      if(!id){log('wr','strat '+strat.n+' → pas de video_id');continue}
-      VID_STRAT=strat.n;
-      log('ok','✔ STRATÉGIE '+strat.n+' GAGNANTE');
-      toast('✔ Stratégie '+strat.n+' trouvée');
-      localStorage.setItem('asmr_vid_strat',strat.n);
-      let inner=null;
-      try{if(id.indexOf('video_')===0){let b=id.slice(6);while(b.length%4)b+='=';const m=atob(b).match(/video_id:([^;]+)/);if(m)inner=m[1].trim()}}catch(e){}
-      c._strat=strat.n;
-      c.task={id:id,inner:inner,k:o.k,model:VID,strat:strat.n};
-      Q.st='run';Q.step=0;
-      save();qui();
-      poll(c);
-      return;
+  let success=null,tried=0;
+  for(const modeVal of modes){
+    if(success)break;
+    for(const fieldName of fields){
+      const body={model:VID,prompt:vp(c),mode:modeVal,aspect_ratio:P.ratio};
+      body[fieldName]=fr;
+      tried++;
+      let r;
+      try{
+        r=await fetch(API+'/videos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)});
+      }catch(e){log('wr','réseau '+modeVal+'/'+fieldName+': '+e.message);continue}
+      if(r.ok){
+        success={r:r,modeVal:modeVal,fieldName:fieldName};
+        log('ok','✔ SUCCÈS mode='+modeVal+' champ='+fieldName+' ('+tried+' essais)');
+        break;
+      }
+      const t=(await r.text()).slice(0,120);
+      if(r.status==400){
+        log('er','['+tried+'] mode='+modeVal+'/'+fieldName+' → 400');
+        continue;
+      }
+      if(r.status==429||r.status==503){
+        log('wr','rate limit → on garde pour plus tard');
+        c.vst='wait';refresh(c.id);save();return sat();
+      }
+      if([401,403].indexOf(r.status)>=0){
+        log('er','auth : '+r.status);
+        c.vst='er';c.err='Authentification échouée';refresh(c.id);return;
+      }
+      log('er',modeVal+'/'+fieldName+' → '+r.status+' '+t.slice(0,80));
     }
-    const t=(await r.text().catch(()=>'')).slice(0,200);
-    log('er','strat '+strat.n+' HTTP '+r.status+' '+t.slice(0,120));
-    if(r.status==429){o.cool=Date.now()+30000;c.vst='wait';refresh(c.id);save();return}
-    if(r.status==503){c.vst='wait';refresh(c.id);save();sat();return}
-    if(r.status==400)continue; // essayer la suivante
-    // Autre code : arrêt
-    c.vst='er';c.err='HTTP '+r.status;refresh(c.id);save();return;
   }
-  c.vst='er';c.err='Aucune des 9 stratégies ne fonctionne';refresh(c.id);save();
-  log('er','toutes les stratégies ont échoué');
+
+  if(!success){
+    c.vst='er';c.err='Aucune des '+tried+' combinaisons ne fonctionne';refresh(c.id);save();
+    log('er','échec total après '+tried+' essais');
+    return;
+  }
+
+  const d=await success.r.json();
+  const id=d.video_id||d.id||d.task_id||(d.data&&(d.data.video_id||d.data.id));
+  if(!id){c.vst='er';c.err='pas de video_id';refresh(c.id);save();return}
+  let inner=null;
+  try{if(id.indexOf('video_')===0){let b=id.slice(6);while(b.length%4)b+='=';const m=atob(b).match(/video_id:([^;]+)/);if(m)inner=m[1].trim()}}catch(e){}
+
+  VID_MODE=success.modeVal;VID_FIELD=success.fieldName;
+  localStorage.setItem('asmr_vid_mode',VID_MODE);
+  localStorage.setItem('asmr_vid_field',VID_FIELD);
+  toast('🎬 Combinaison : '+VID_MODE+' + '+VID_FIELD);
+  log('ok','combinaison mémorisée');
+
+  c.task={id:id,inner:inner,k:o.k,model:VID};
+  Q.st='run';Q.step=0;
+  save();qui();
+  poll(c);
 }
 async function poll(c){
   const t=c.task,model=VID,end=Date.now()+30*60000;
@@ -388,7 +396,7 @@ function qstart(){
   if(Q.st=='paused'||Q.st=='idle')Q.st='run';
   if(Q.st!='full')Q.next=0;
   wake();save();qui();
-  log('in','production vidéo · test des stratégies');
+  log('in','test des 77 combinaisons');
 }
 
 const OK_DURING=['con','stoptask','retrytask','canceltask'];
@@ -453,15 +461,14 @@ function resume(){P.clips.forEach(c=>{if(c.vst=='run'&&c.task){if(KEYS.list.some
   try{
     const k=await dbGet('config','keys');
     if(k){KEYS.plan=k.plan||'free';KEYS.list=(k.list||[]).map(mkKey)}
-    const savedStrat=localStorage.getItem('asmr_vid_strat');
-    if(savedStrat)VID_STRAT=savedStrat;
+    VID_MODE=localStorage.getItem('asmr_vid_mode');
+    VID_FIELD=localStorage.getItem('asmr_vid_field');
     const last=await dbGet('config','last'),p=last&&await dbGet('clips',last.v);
     setP(p||newP());
     if(!P.clips.length){P.clips=[0,1,2].map(i=>({id:uid(),prompt:PRESETS[i].p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false}))}
   }catch(e){setP(newP())}
   page=KEYS.list.length?Math.max(1,Math.min(P.page||1,3)):0;
-  render();
-  resume();
-  log('in','ASMR LOOP prêt · '+KEYS.list.length+' clé(s)'+(VID_STRAT?' · strat mémorisée : '+VID_STRAT:''));
+  render();resume();
+  log('in','ASMR LOOP prêt · '+KEYS.list.length+' clé(s)'+(VID_MODE?' · combo: '+VID_MODE+' + '+VID_FIELD:''));
 })();
 </script></body></html>
