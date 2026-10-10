@@ -57,6 +57,9 @@ button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-col
 <div id="toast"></div>
 
 <script>
+/* ═════════════════════════════════════════════════════════════════════
+   CONFIG + PROXY VERCEL
+   ═════════════════════════════════════════════════════════════════════ */
 const AGNES_API='https://apihub.agnes-ai.com/v1';
 const AGNES_POLL='https://apihub.agnes-ai.com/agnesapi';
 const PROXY='https://agnes-proxy-phi.vercel.app/api/proxy?url=';
@@ -66,8 +69,6 @@ const IMG='agnes-image-2.5-flash',VID='agnes-video-2.5-flash';
 const RPM={free:{img:10,vid:1},plan:{img:100,vid:5}};
 const STEPS=['Clés','Prompts','Images','Vidéos'];
 const BACK=[3,6,12,24,48,96];
-const MODES=['keyframe','image_to_video','image','i2v'];
-const FIELDS=['first_frame','image','input_image','init_image'];
 
 const PRESETS=[
  {n:'Sablier liquide',p:"Plan macro ultra-réaliste, objectif 100mm, d'un sablier en verre noir mat posé sur une surface en obsidienne polie. À l'intérieur, un liquide visqueux et lumineux composé de filaments cyan et or flotte en apesanteur. Une tige en bois brut descend lentement et perce la paroi du sablier. Le verre se fissure en fractales lumineuses, libérant une poussière d'étoiles qui tourbillonne. Éclairage volumétrique doux, contraste élevé, fond noir profond. Style ASMR macro, ultra-détaillé, cinématographique, 8K. Physique satisfaisante, mouvement lent et hypnotique. Caméra : plan fixe."},
@@ -254,7 +255,7 @@ V[1].cfg=()=>'<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+guide('👉 Ch
   foot(btn('go','← Précédent','','data-n="0"'),nextBtn('go','Générer les images',P.clips.length?'data-n="2"':'disabled data-off="1"'))+'</div>';
 V[2].cfg=()=>'<div class="hero">'+hd(3,'Prêt à générer les <b>images</b>')+guide('✓ Clique sur le bouton pour lancer la création des images.')+'<div class="rw">'+btn('startimg','✦ Lancer la génération','big')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'))+'</div>';
 V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+guide('✓ Vérifie-les, régénère si besoin, puis passe aux vidéos.','go')+'<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'),nextBtn('go','Passer aux vidéos','data-n="3"'))+'</div>';
-V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">Proxy Vercel actif. 1 clip à la fois, 800ms entre chaque essai. 16 combinaisons testées.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
+V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">Proxy Vercel actif. Format API officiel Agnès : model + prompt + mode:reference + images[] + seconds + size + aspect_ratio.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
 
 function view(){if(TASK)return workView();const s=P.sub[page]||'cfg';const v=V[page];const fn=v[s]||v.cfg;return fn?fn():'<div class="hero"><div class="guide er">Vue introuvable</div></div>'}
 function render(keep){
@@ -273,56 +274,82 @@ function keysChips(){const e=$('#kl');if(!e)return;e.innerHTML=KEYS.list.map((k,
 const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function qHtml(ok,left,total){
   if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Télécharge-les et assemble-les dans CapCut.','go');
-  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 L\'app va tester 16 combinaisons via proxy Vercel.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
+  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 Format Agnès officiel : mode=reference + images[] + seconds + size.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
   if(!Q.on)return guide('<b>En pause.</b> '+ok+' prête(s), '+left+' restante(s).','wt')+'<div class="rw">'+btn('qstart','▶ Reprendre','big')+'</div>';
   if(Q.st=='full')return guide('<b>⏳ Nouvel essai dans <b id="cd" style="font:600 18px Orbitron">'+fmt((Q.next-Date.now())/1000)+'</b></b>','wt')+'<div class="rw">'+btn('qnow','Tester','sm')+btn('qpause','❚❚ Pause','sm')+'</div>';
-  return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s).'+(VID_MODE?' <b>Mode: '+VID_MODE+' + '+VID_FIELD+'</b>':''))+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
+  return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s).'+(VID_MODE?' <b>Mode: '+VID_MODE+'</b>':''))+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
 }
 function qui(){
   const n=Date.now(),c=$('#qchip'),all=P?P.clips:[],ok=all.filter(c=>c.vst=='ok').length,left=all.filter(c=>c.vst!='ok'&&c.img).length;
   if(c){c.style.display=all.some(c=>c.img)?'':'none';c.textContent='VIDÉO · '+(!Q.on?(ok==all.length&&all.length?'terminé':'en pause'):'en cours'+(Q.next>n?' · '+fmt((Q.next-n)/1000):''));c.className='chip '+(!Q.on?'off':'')}
   const e=$('#qp');if(!e||page!=3||TASK)return;
-  const sig=[Q.st,Q.on,Q.step,ok,left,all.length,VID_MODE,VID_FIELD].join();
+  const sig=[Q.st,Q.on,Q.step,ok,left,all.length,VID_MODE].join();
   if(e.dataset.sig!=sig){e.dataset.sig=sig;e.innerHTML=qHtml(ok,left,all.length)}
   const cd=$('#cd');if(cd)cd.textContent=fmt((Q.next-n)/1000);
 }
 function stats(){const k=$('#kp');if(!k)return;const a=P?P.clips:[];const n=s=>a.filter(c=>c.vst==s&&c.img).length;k.innerHTML='<div><span class="lab">Clips</span><b>'+a.length+'</b></div><div><span class="lab">Prêtes</span><b>'+n('ok')+'</b></div><div><span class="lab">En cours</span><b>'+n('run')+'</b></div><div><span class="lab">En attente</span><b>'+n('wait')+'</b></div><div><span class="lab">Échecs</span><b>'+n('er')+'</b></div>'}
 function sat(){Q.st='full';Q.next=Date.now()+BACK[Math.min(Q.step,BACK.length-1)]*60000;log('wr','retest dans '+BACK[Math.min(Q.step,BACK.length-1)]+' min');Q.step=Math.min(Q.step+1,BACK.length-1);save();qui()}
 
+/* ═════════════════════════════════════════════════════════════════════
+   LAUNCH — FORMAT API OFFICIEL AGNÈS (extrait de core/api/agnes_video.py)
+   
+   Pour agnes-video-2.5-flash avec 1 image :
+     - mode: "reference"
+     - images: [url]  (tableau)
+     - seconds: "4" à "12" (string)
+     - size: "720P"
+     - aspect_ratio: "9:16" | "1:1" | "16:9"
+   
+   Fallback vers agnes-video-v2.0 :
+     - mode: "ti2vid"
+     - image: url  (string)
+     - width, height, num_frames, frame_rate
+   ═════════════════════════════════════════════════════════════════════ */
 async function launch(c){
   const live=KEYS.list.filter(k=>!k.off);
   if(!live.length)return toast('Aucune clé active');
   const fr=c.img.u&&c.img.u.indexOf('data:')!==0?c.img.u:ref(c.img);
   c.vst='run';c.err='';refresh(c.id);
 
-  let modes=VID_MODE?[VID_MODE].concat(MODES.filter(m=>m!=VID_MODE)):MODES.slice();
-  let fields=VID_FIELD?[VID_FIELD].concat(FIELDS.filter(f=>f!=VID_FIELD)):FIELDS.slice();
+  // Stratégies dans l'ordre de probabilité (d'après le code source officiel)
+  const strategies=[
+    {n:'v2.5-flash reference',f:()=>({model:'agnes-video-2.5-flash',prompt:vp(c),mode:'reference',images:[fr],seconds:'5',size:'720P',aspect_ratio:P.ratio})},
+    {n:'v2.5 reference',f:()=>({model:'agnes-video-2.5',prompt:vp(c),mode:'reference',images:[fr],seconds:'5',size:'720P',aspect_ratio:P.ratio})},
+    {n:'v2.5 text',f:()=>({model:'agnes-video-2.5-flash',prompt:vp(c),mode:'text',seconds:'5',size:'720P',aspect_ratio:P.ratio})},
+    {n:'v2.0 ti2vid',f:()=>({model:'agnes-video-v2.0',prompt:vp(c),mode:'ti2vid',image:fr,width:854,height:480,num_frames:97,frame_rate:12})},
+    {n:'v2.0 keyframes',f:()=>({model:'agnes-video-v2.0',prompt:vp(c),extra_body:{image:[fr],mode:'keyframes'},width:854,height:480,num_frames:97,frame_rate:12})}
+  ];
 
   let success=null,tried=0,allRateLimited=true;
-  for(const modeVal of modes){
-    if(success)break;
-    for(const fieldName of fields){
-      const o=live[keyIdx++%live.length];
-      const body={model:VID,prompt:vp(c),mode:modeVal,aspect_ratio:P.ratio};
-      body[fieldName]=fr;
-      tried++;
-      if(tried>1)await sleep(800);
-      let r;
-      try{
-        r=await fetch(PX(AGNES_API+'/videos'),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)});
-      }catch(e){log('wr','réseau '+modeVal+'/'+fieldName+': '+e.message);continue}
-      if(r.ok){success={r:r,modeVal:modeVal,fieldName:fieldName,key:o.k};log('ok','✔ SUCCÈS mode='+modeVal+' champ='+fieldName+' ('+tried+' essais)');break}
-      if(r.status==400){allRateLimited=false;log('er','['+tried+'] '+modeVal+'/'+fieldName+' → 400');continue}
-      if(r.status==429||r.status==503){o.cool=Date.now()+20000;continue}
-      if([401,403].indexOf(r.status)>=0){allRateLimited=false;o.off=true;log('er','clé …'+o.k.slice(-4)+' désactivée');continue}
-      allRateLimited=false;
-      log('er',modeVal+'/'+fieldName+' → '+r.status);
+  for(const s of strategies){
+    const o=live[keyIdx++%live.length];
+    tried++;
+    if(tried>1)await sleep(1000);
+    const body=s.f();
+    log('in','stratégie '+tried+' : '+s.n);
+    let r;
+    try{
+      r=await fetch(PX(AGNES_API+'/videos'),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)});
+    }catch(e){log('er','réseau '+s.n+' : '+e.message);continue}
+    if(r.ok){
+      success={r:r,strat:s.n,key:o.k};
+      log('ok','✔✔✔ SUCCÈS : '+s.n);
+      VID_MODE=s.n;
+      localStorage.setItem('asmr_vid_mode',VID_MODE);
+      toast('🎬 '+s.n+' → vidéo lancée !');
+      break;
     }
+    const t=(await r.text().catch(()=>'')).slice(0,250);
+    log('er','['+tried+'] '+s.n+' → '+r.status+' '+t.slice(0,120));
+    if(r.status==400){allRateLimited=false;continue}
+    if(r.status==429||r.status==503){o.cool=Date.now()+20000;continue}
+    if([401,403].indexOf(r.status)>=0){allRateLimited=false;o.off=true;continue}
+    allRateLimited=false;
   }
 
   if(!success){
-    if(allRateLimited){log('wr','toutes les clés en rate limit → pause 60s');c.vst='wait';refresh(c.id);save();Q.next=Date.now()+60000;return}
-    c.vst='er';c.err='Aucune des '+tried+' combinaisons ne marche';refresh(c.id);save();log('er','échec après '+tried+' essais');return;
+    if(allRateLimited){log('wr','toutes clés en rate limit → pause 60s');c.vst='wait';refresh(c.id);save();Q.next=Date.now()+60000;return}
+    c.vst='er';c.err='Aucune stratégie ne marche ('+tried+' essayées)';refresh(c.id);save();return;
   }
 
   const d=await success.r.json();
@@ -330,9 +357,6 @@ async function launch(c){
   if(!id){c.vst='er';c.err='pas de video_id';refresh(c.id);save();return}
   let inner=null;
   try{if(id.indexOf('video_')===0){let b=id.slice(6);while(b.length%4)b+='=';const m=atob(b).match(/video_id:([^;]+)/);if(m)inner=m[1].trim()}}catch(e){}
-  VID_MODE=success.modeVal;VID_FIELD=success.fieldName;
-  localStorage.setItem('asmr_vid_mode',VID_MODE);localStorage.setItem('asmr_vid_field',VID_FIELD);
-  toast('🎬 Trouvé : '+VID_MODE+' + '+VID_FIELD);
   c.task={id:id,inner:inner,k:success.key,model:VID};
   Q.st='run';Q.step=0;save();qui();poll(c);
 }
@@ -351,7 +375,7 @@ async function poll(c){
       if(d){
         const s=String(d.status||d.state||'').toLowerCase();
         if(['completed','succeeded','done','success','finished','ready'].indexOf(s)>=0){
-          const u=(d.metadata&&(d.metadata.url||d.metadata.video_url))||(d.output&&(d.output.url||d.output.video_url))||(d.data&&(d.data.url||d.data.video_url))||d.url||d.video_url;
+          const u=(d.metadata&&(d.metadata.url||d.metadata.video_url))||(d.output&&(d.output.url||d.output.video_url))||(d.data&&(d.data.url||d.data.video_url))||d.url||d.video_url||d.remixed_from_video_id;
           if(!u)throw new Error('terminé sans URL');
           c.video=u;c.vst='ok';c.seen=false;c.err='';
           log('ok','vidéo prête');toast('🎬 Nouvelle vidéo prête');
@@ -381,7 +405,7 @@ function qstart(){
   if(Q.st=='paused'||Q.st=='idle')Q.st='run';
   if(Q.st!='full')Q.next=0;
   wake();save();qui();
-  log('in','test via proxy Vercel · '+KEYS.list.length+' clé(s)');
+  log('in','format officiel Agnès : mode=reference + images[]');
 }
 
 const OK_DURING=['con','stoptask','retrytask','canceltask'];
@@ -440,20 +464,19 @@ document.addEventListener('click',async e=>{
   if(a=='delsess'){if(!confirm('Supprimer ?'))return;await dbDel('clips',id);if(P.id==id){setP(newP());page=KEYS.list.length?1:0;render()}sessions()}
 });
 
-function resume(){P.clips.forEach(c=>{if(c.vst=='run'&&c.task){if(KEYS.list.some(k=>k.k==c.task.key))poll(c);else c.vst='wait'}});qui()}
+function resume(){P.clips.forEach(c=>{if(c.vst=='run'&&c.task){if(KEYS.list.some(k=>k.k==c.task.k))poll(c);else c.vst='wait'}});qui()}
 (async()=>{
   try{db=await Promise.race([openDB(),new Promise((_,rj)=>setTimeout(()=>rj(new Error('délai')),3000))])}catch(e){db=null;fall(e)}
   try{
     const k=await dbGet('config','keys');
     if(k){KEYS.plan=k.plan||'free';KEYS.list=(k.list||[]).map(mkKey)}
     VID_MODE=localStorage.getItem('asmr_vid_mode');
-    VID_FIELD=localStorage.getItem('asmr_vid_field');
     const last=await dbGet('config','last'),p=last&&await dbGet('clips',last.v);
     setP(p||newP());
     if(!P.clips.length){P.clips=[0,1,2].map(i=>({id:uid(),prompt:PRESETS[i].p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false}))}
   }catch(e){setP(newP())}
   page=KEYS.list.length?Math.max(1,Math.min(P.page||1,3)):0;
   render();resume();
-  log('in','ASMR LOOP prêt · proxy Vercel · '+KEYS.list.length+' clé(s)');
+  log('in','ASMR LOOP prêt · format Agnès officiel · '+KEYS.list.length+' clé(s)');
 })();
 </script></body></html>
