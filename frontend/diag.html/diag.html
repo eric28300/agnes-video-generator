@@ -1,0 +1,65 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diagnostic Agnès</title>
+<style>
+body{font:14px system-ui;background:#0a0a12;color:#e8e8f5;padding:16px;margin:0}
+h1{font-size:18px;margin:0 0 12px}
+textarea{width:100%;min-height:80px;background:#0d0d18;color:#e8e8f5;border:1px solid #25253a;border-radius:5px;padding:8px;font:12px monospace}
+button{background:#00d4ff;color:#000;border:0;padding:12px 20px;border-radius:5px;font-weight:700;margin:10px 0;cursor:pointer}
+button:disabled{opacity:.5}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:11px}
+th,td{border:1px solid #25253a;padding:6px;text-align:left;vertical-align:top;word-break:break-all}
+th{background:#14141f}
+.ok{color:#7dffb5}.er{color:#ff8a8a}.wr{color:#ffc477}
+.log{background:#000;padding:8px;font:11px monospace;max-height:200px;overflow:auto;border-radius:5px;margin-top:10px;color:#7dd3fc}
+</style></head><body>
+<h1>🔬 Diagnostic Agnès</h1>
+<p>Colle ta clé API Agnès, puis clique sur le bouton.</p>
+<textarea id="keys" placeholder="sk-..."></textarea>
+<button id="go" onclick="run()">▶ Lancer le diagnostic (~5 min)</button>
+<div class="log" id="log">Prêt.</div>
+<table id="res"><thead><tr><th>#</th><th>Modèle</th><th>Mode</th><th>Champ</th><th>HTTP</th><th>Message</th></tr></thead><tbody></tbody></table>
+
+<script>
+const PROXY='https://agnes-proxy-phi.vercel.app/api/proxy?url=';
+const AGNES='https://apihub.agnes-ai.com/v1/videos';
+const PX=u=>PROXY+encodeURIComponent(u);
+const MODELS=['agnes-video-2.5-flash','agnes-video-v2.0','agnes-video','agnes-video-pro'];
+const MODES=['keyframe','image_to_video','image','i2v','animate','video','text_to_video','t2v'];
+const FIELDS=['first_frame','image','input_image','init_image','source_image','image_url'];
+let keys=[],stopped=false;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const $=s=>document.querySelector(s);
+function log(m){const d=document.createElement('div');d.textContent=new Date().toLocaleTimeString('fr-FR')+' '+m;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight}
+function row(n,model,mode,field,status,msg){const tr=document.createElement('tr');tr.innerHTML='<td>'+n+'</td><td>'+model+'</td><td>'+mode+'</td><td>'+field+'</td><td class="'+(status>=200&&status<300?'ok':status==429?'wr':'er')+'">'+status+'</td><td>'+msg.slice(0,180).replace(/[<>]/g,'')+'</td>';$('#res tbody').appendChild(tr)}
+async function run(){
+  keys=$('#keys').value.split(/[\s,;]+/).map(s=>s.trim()).filter(s=>s.length>8);
+  if(!keys.length){alert('Colle au moins une clé');return}
+  $('#go').disabled=true;stopped=false;
+  log('Démarrage avec '+keys.length+' clé(s)');
+  let combo=0,ki=0;
+  const img='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigD//2Q==';
+  for(const model of MODELS){
+    if(stopped)break;
+    for(const mode of MODES){
+      if(stopped)break;
+      for(const field of FIELDS){
+        if(stopped)break;
+        combo++;
+        const key=keys[ki++%keys.length];
+        const body={model:model,prompt:'cinematic macro shot, slow motion',mode:mode,aspect_ratio:'9:16'};
+        body[field]=img;
+        let r,status=0,msg='';
+        try{r=await fetch(PX(AGNES),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+key},body:JSON.stringify(body)});status=r.status;msg=await r.text();}
+        catch(e){status=0;msg='réseau:'+e.message}
+        row(combo,model,mode,field,status,msg.slice(0,180));
+        if(status>=200&&status<300){log('✔✔✔ SUCCÈS : '+model+' / '+mode+' / '+field);stopped=true;break}
+        if(status==429){log('['+combo+'] 429 rate limit → pause 30s');await sleep(30000);combo--;continue}
+        log('['+combo+'] '+mode+'/'+field+' → '+status+' '+msg.slice(0,60));
+        await sleep(900);
+      }
+    }
+  }
+  $('#go').disabled=false;
+  log('Terminé. '+combo+' combinaisons testées.');
+}
+</script></body></html>
