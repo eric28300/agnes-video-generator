@@ -396,9 +396,10 @@ async function launch(c){
   const o=await slot('vid'),free=KEYS.plan=='free';
   const fr=c.img.u&&c.img.u.indexOf('data:')!==0?c.img.u:ref(c.img);
   const modelName=c._model||(free?VID_TRIES[0]:VID.plan);
-  // FIX: pas de width/height (INTERDITS) — on utilise aspect_ratio uniquement
-  const body=free?{model:modelName,prompt:vp(c),num_frames:97,frame_rate:12,aspect_ratio:P.ratio,image:fr}
-                  :{model:modelName,prompt:vp(c),seconds:'10',mode:'keyframe',size:'720P',aspect_ratio:P.ratio,first_frame:fr};
+  // Body MINIMAL : uniquement les champs acceptés par Agnès
+  // (num_frames, frame_rate, width, height, seconds, mode, size sont INTERDITS)
+  const body={model:modelName,prompt:vp(c),aspect_ratio:P.ratio};
+  if(free){body.image=fr}else{body.first_frame=fr}
   c.vst='run';c.err='';refresh(c.id);
   let r;
   try{r=await fetch(API+'/videos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)})}
@@ -417,10 +418,12 @@ async function launch(c){
       log('er','aucun modèle vidéo trouvé pour ta clé');
       c.vst='er';c.err='Aucun modèle vidéo accessible avec ta clé';refresh(c.id);return;
     }
-    // Champ interdit → on retire progressivement les champs problématiques
-    if(r.status==400&&t.indexOf('FORBIDDEN FIELD')>=0){
-      log('wr','champ interdit détecté → retrait des champs non supportés');
-      c.vst='er';c.err='HTTP 400 — champ interdit';refresh(c.id);return;
+    // Champ interdit → on le signale précisément
+    if(r.status==400&&t.indexOf('FORBIDDEN')>=0){
+      const match=t.match(/"MESSAGE":"([^"]+)"/);
+      const msg=match?match[1]:'champ interdit';
+      log('er','champ interdit : '+msg);
+      c.vst='er';c.err=msg.slice(0,100);refresh(c.id);return;
     }
     if(r.status==503||r.status==429){
       if(r.status==429)o.cool=Date.now()+(parseInt(r.headers.get('Retry-After'))||30)*1000;
@@ -493,7 +496,6 @@ setInterval(function(){
 async function wake(){try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}}
 function qstart(){
   if(!P.clips.some(c=>c.img))return toast('Il faut d\'abord des images');
-  // Reset des échecs pour permettre un nouvel essai
   P.clips.forEach(c=>{if(c.vst=='er'){c.vst='wait';c.err='';c._model=null}});
   Q.on=true;
   if(Q.st=='paused'||Q.st=='idle')Q.st='run';
