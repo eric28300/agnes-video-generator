@@ -58,17 +58,15 @@ button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-col
 
 <script>
 /* ═════════════════════════════════════════════════════════════════════
-   CONFIG + PROXY CORS
+   CONFIG + PROXY VERCEL
+   ⚠️ REMPLACE "TON-URL-VERCEL" PAR TON VRAI SOUS-DOMAINE VERCEL
    ═════════════════════════════════════════════════════════════════════ */
 const AGNES_API='https://apihub.agnes-ai.com/v1';
 const AGNES_POLL='https://apihub.agnes-ai.com/agnesapi';
 
-// Proxy CORS gratuit — contourne le blocage navigateur d'Agnès
-const PROXY='https://api.allorigins.win/raw?url=';
+// ⚠️ MODIFIE CETTE LIGNE avec ton URL Vercel
+const PROXY='https://TON-URL-VERCEL.vercel.app/api/proxy?url=';
 const PX=u=>PROXY+encodeURIComponent(u);
-
-const API=PX(AGNES_API);
-const POLL=PX(AGNES_POLL);
 
 const IMG='agnes-image-2.5-flash',VID='agnes-video-2.5-flash';
 const RPM={free:{img:10,vid:1},plan:{img:100,vid:5}};
@@ -167,7 +165,7 @@ function toData(u){
 function mkImg(prompt,refUris,ratio){
   const body={model:IMG,prompt:san(prompt),n:1,size:'1K',ratio:ratio||P.ratio,extra_body:{response_format:'url'}};
   if(refUris&&refUris.length)body.extra_body.image=refUris.filter(Boolean).slice(0,4);
-  return call('img',API+'/images/generations',body,3).then(r=>r.json()).then(d=>{
+  return call('img',PX(AGNES_API+'/images/generations'),body,3).then(r=>r.json()).then(d=>{
     const it=d.data&&d.data[0];
     const u=it&&(it.url||(it.b64_json&&'data:image/png;base64,'+it.b64_json));
     if(!u)throw new Error('pas d\'image reçue');
@@ -263,7 +261,7 @@ V[1].cfg=()=>'<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+guide('👉 Ch
   foot(btn('go','← Précédent','','data-n="0"'),nextBtn('go','Générer les images',P.clips.length?'data-n="2"':'disabled data-off="1"'))+'</div>';
 V[2].cfg=()=>'<div class="hero">'+hd(3,'Prêt à générer les <b>images</b>')+guide('✓ Clique sur le bouton pour lancer la création des images.')+'<div class="rw">'+btn('startimg','✦ Lancer la génération','big')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'))+'</div>';
 V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+guide('✓ Vérifie-les, régénère si besoin, puis passe aux vidéos.','go')+'<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'),nextBtn('go','Passer aux vidéos','data-n="3"'))+'</div>';
-V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">Passage par proxy CORS pour contourner le blocage navigateur d\'Agnès. 1 clip à la fois, 800ms entre chaque essai.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
+V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">Passage par proxy Vercel (serverless). 1 clip à la fois, 800ms entre chaque essai.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
 
 function view(){if(TASK)return workView();const s=P.sub[page]||'cfg';const v=V[page];const fn=v[s]||v.cfg;return fn?fn():'<div class="hero"><div class="guide er">Vue introuvable</div></div>'}
 function render(keep){
@@ -282,7 +280,7 @@ function keysChips(){const e=$('#kl');if(!e)return;e.innerHTML=KEYS.list.map((k,
 const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function qHtml(ok,left,total){
   if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Télécharge-les et assemble-les dans CapCut.','go');
-  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 L\'app va tester 16 combinaisons via proxy CORS.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
+  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 L\'app va tester 16 combinaisons via proxy Vercel.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
   if(!Q.on)return guide('<b>En pause.</b> '+ok+' prête(s), '+left+' restante(s).','wt')+'<div class="rw">'+btn('qstart','▶ Reprendre','big')+'</div>';
   if(Q.st=='full')return guide('<b>⏳ Nouvel essai dans <b id="cd" style="font:600 18px Orbitron">'+fmt((Q.next-Date.now())/1000)+'</b></b>','wt')+'<div class="rw">'+btn('qnow','Tester','sm')+btn('qpause','❚❚ Pause','sm')+'</div>';
   return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s).'+(VID_MODE?' <b>Mode: '+VID_MODE+' + '+VID_FIELD+'</b>':''))+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
@@ -390,7 +388,7 @@ function qstart(){
   if(Q.st=='paused'||Q.st=='idle')Q.st='run';
   if(Q.st!='full')Q.next=0;
   wake();save();qui();
-  log('in','test via proxy CORS · '+KEYS.list.length+' clé(s)');
+  log('in','test via proxy Vercel · '+KEYS.list.length+' clé(s)');
 }
 
 const OK_DURING=['con','stoptask','retrytask','canceltask'];
@@ -459,10 +457,10 @@ function resume(){P.clips.forEach(c=>{if(c.vst=='run'&&c.task){if(KEYS.list.some
     VID_FIELD=localStorage.getItem('asmr_vid_field');
     const last=await dbGet('config','last'),p=last&&await dbGet('clips',last.v);
     setP(p||newP());
-    if(!P.clips.length){P.clips=[0,1,2].map(i=>({id:uid(),prompt:PRESETS[i].p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,se:false}))}
+    if(!P.clips.length){P.clips=[0,1,2].map(i=>({id:uid(),prompt:PRESETS[i].p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false}))}
   }catch(e){setP(newP())}
   page=KEYS.list.length?Math.max(1,Math.min(P.page||1,3)):0;
   render();resume();
-  log('in','ASMR LOOP prêt · proxy CORS activé · '+KEYS.list.length+' clé(s)');
+  log('in','ASMR LOOP prêt · proxy Vercel · '+KEYS.list.length+' clé(s)');
 })();
 </script></body></html>
