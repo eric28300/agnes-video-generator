@@ -57,9 +57,6 @@ button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-col
 <div id="toast"></div>
 
 <script>
-/* ═════════════════════════════════════════════════════════════════════
-   PROXY VERCEL
-   ═════════════════════════════════════════════════════════════════════ */
 const AGNES_API='https://apihub.agnes-ai.com/v1';
 const AGNES_POLL='https://apihub.agnes-ai.com/agnesapi';
 const PROXY='https://agnes-video-generator-eight.vercel.app/api/proxy?url=';
@@ -69,7 +66,6 @@ const IMG='agnes-image-2.5-flash',VID='agnes-video-2.5-flash';
 const RPM={free:{img:10,vid:1},plan:{img:100,vid:5}};
 const STEPS=['Clés','Prompts','Images','Vidéos'];
 const BACK=[3,6,12,24,48,96];
-
 const MODES=['keyframe','image_to_video','image','i2v'];
 const FIELDS=['first_frame','image','input_image','init_image'];
 
@@ -162,7 +158,7 @@ function toData(u){
 function mkImg(prompt,refUris,ratio){
   const body={model:IMG,prompt:san(prompt),n:1,size:'1K',ratio:ratio||P.ratio,extra_body:{response_format:'url'}};
   if(refUris&&refUris.length)body.extra_body.image=refUris.filter(Boolean).slice(0,4);
-  return call('img',API+'/images/generations',body,3).then(r=>r.json()).then(d=>{
+  return call('img',PX(AGNES_API+'/images/generations'),body,3).then(r=>r.json()).then(d=>{
     const it=d.data&&d.data[0];
     const u=it&&(it.url||(it.b64_json&&'data:image/png;base64,'+it.b64_json));
     if(!u)throw new Error('pas d\'image reçue');
