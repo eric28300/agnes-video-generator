@@ -57,13 +57,24 @@ button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-col
 <div id="toast"></div>
 
 <script>
-const API='https://apihub.agnes-ai.com/v1',POLL='https://apihub.agnes-ai.com/agnesapi';
+/* ═════════════════════════════════════════════════════════════════════
+   CONFIG + PROXY CORS
+   ═════════════════════════════════════════════════════════════════════ */
+const AGNES_API='https://apihub.agnes-ai.com/v1';
+const AGNES_POLL='https://apihub.agnes-ai.com/agnesapi';
+
+// Proxy CORS gratuit — contourne le blocage navigateur d'Agnès
+const PROXY='https://api.allorigins.win/raw?url=';
+const PX=u=>PROXY+encodeURIComponent(u);
+
+const API=PX(AGNES_API);
+const POLL=PX(AGNES_POLL);
+
 const IMG='agnes-image-2.5-flash',VID='agnes-video-2.5-flash';
 const RPM={free:{img:10,vid:1},plan:{img:100,vid:5}};
 const STEPS=['Clés','Prompts','Images','Vidéos'];
 const BACK=[3,6,12,24,48,96];
 
-// 16 combinaisons ciblées (les plus probables selon la doc Agnès)
 const MODES=['keyframe','image_to_video','image','i2v'];
 const FIELDS=['first_frame','image','input_image','init_image'];
 
@@ -252,7 +263,7 @@ V[1].cfg=()=>'<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+guide('👉 Ch
   foot(btn('go','← Précédent','','data-n="0"'),nextBtn('go','Générer les images',P.clips.length?'data-n="2"':'disabled data-off="1"'))+'</div>';
 V[2].cfg=()=>'<div class="hero">'+hd(3,'Prêt à générer les <b>images</b>')+guide('✓ Clique sur le bouton pour lancer la création des images.')+'<div class="rw">'+btn('startimg','✦ Lancer la génération','big')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'))+'</div>';
 V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+guide('✓ Vérifie-les, régénère si besoin, puis passe aux vidéos.','go')+'<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'),nextBtn('go','Passer aux vidéos','data-n="3"'))+'</div>';
-V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">L\'app teste UN SEUL clip à la fois, avec 800ms entre chaque essai (16 combinaisons). Pas de blocage réseau.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
+V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">Passage par proxy CORS pour contourner le blocage navigateur d\'Agnès. 1 clip à la fois, 800ms entre chaque essai.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
 
 function view(){if(TASK)return workView();const s=P.sub[page]||'cfg';const v=V[page];const fn=v[s]||v.cfg;return fn?fn():'<div class="hero"><div class="guide er">Vue introuvable</div></div>'}
 function render(keep){
@@ -271,7 +282,7 @@ function keysChips(){const e=$('#kl');if(!e)return;e.innerHTML=KEYS.list.map((k,
 const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function qHtml(ok,left,total){
   if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Télécharge-les et assemble-les dans CapCut.','go');
-  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 L\'app va tester 16 combinaisons, un clip à la fois.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
+  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 L\'app va tester 16 combinaisons via proxy CORS.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
   if(!Q.on)return guide('<b>En pause.</b> '+ok+' prête(s), '+left+' restante(s).','wt')+'<div class="rw">'+btn('qstart','▶ Reprendre','big')+'</div>';
   if(Q.st=='full')return guide('<b>⏳ Nouvel essai dans <b id="cd" style="font:600 18px Orbitron">'+fmt((Q.next-Date.now())/1000)+'</b></b>','wt')+'<div class="rw">'+btn('qnow','Tester','sm')+btn('qpause','❚❚ Pause','sm')+'</div>';
   return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s).'+(VID_MODE?' <b>Mode: '+VID_MODE+' + '+VID_FIELD+'</b>':''))+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
@@ -304,11 +315,10 @@ async function launch(c){
       const body={model:VID,prompt:vp(c),mode:modeVal,aspect_ratio:P.ratio};
       body[fieldName]=fr;
       tried++;
-      // Délai de 800ms entre chaque essai (sauf le premier)
       if(tried>1)await sleep(800);
       let r;
       try{
-        r=await fetch(API+'/videos',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)});
+        r=await fetch(PX(AGNES_API+'/videos'),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)});
       }catch(e){log('wr','réseau '+modeVal+'/'+fieldName+': '+e.message);continue}
       if(r.ok){success={r:r,modeVal:modeVal,fieldName:fieldName,key:o.k};log('ok','✔ SUCCÈS mode='+modeVal+' champ='+fieldName+' ('+tried+' essais)');break}
       if(r.status==400){allRateLimited=false;log('er','['+tried+'] '+modeVal+'/'+fieldName+' → 400');continue}
@@ -345,7 +355,7 @@ async function poll(c){
       const iv=Math.min(20000,6000+n*1500);n++;
       let d=null;
       for(let i=0;i<ids.length;i++){
-        try{const r=await fetch(POLL+'?video_id='+encodeURIComponent(ids[i])+'&model_name='+encodeURIComponent(model),{headers:{Authorization:'Bearer '+key}});if(r.status==429){await sleep(8000);continue}if(!r.ok){miss++;continue}d=await r.json();break}catch(e){miss++}
+        try{const r=await fetch(PX(AGNES_POLL+'?video_id='+encodeURIComponent(ids[i])+'&model_name='+encodeURIComponent(model)),{headers:{Authorization:'Bearer '+key}});if(r.status==429){await sleep(8000);continue}if(!r.ok){miss++;continue}d=await r.json();break}catch(e){miss++}
       }
       if(d){
         const s=String(d.status||d.state||'').toLowerCase();
@@ -368,7 +378,6 @@ setInterval(function(){
   if(!P||!Q.on||Q.busy||Date.now()<Q.next)return;
   const a=P.clips,todo=a.filter(c=>c.vst=='wait'&&c.img),run=a.filter(c=>c.vst=='run').length;
   if(!todo.length){if(!run){Q.on=false;Q.st='idle';save();qui()}return}
-  // UN SEUL CLIP À LA FOIS
   if(run>=1)return;
   Q.busy=true;
   launch(todo[0]).catch(e=>{log('er','file : '+e.message);Q.on=false;Q.st='paused'}).then(()=>{Q.busy=false});
@@ -381,7 +390,7 @@ function qstart(){
   if(Q.st=='paused'||Q.st=='idle')Q.st='run';
   if(Q.st!='full')Q.next=0;
   wake();save();qui();
-  log('in','test des 16 combinaisons · '+KEYS.list.length+' clé(s) · 1 clip à la fois');
+  log('in','test via proxy CORS · '+KEYS.list.length+' clé(s)');
 }
 
 const OK_DURING=['con','stoptask','retrytask','canceltask'];
@@ -450,10 +459,10 @@ function resume(){P.clips.forEach(c=>{if(c.vst=='run'&&c.task){if(KEYS.list.some
     VID_FIELD=localStorage.getItem('asmr_vid_field');
     const last=await dbGet('config','last'),p=last&&await dbGet('clips',last.v);
     setP(p||newP());
-    if(!P.clips.length){P.clips=[0,1,2].map(i=>({id:uid(),prompt:PRESETS[i].p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false}))}
+    if(!P.clips.length){P.clips=[0,1,2].map(i=>({id:uid(),prompt:PRESETS[i].p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,se:false}))}
   }catch(e){setP(newP())}
   page=KEYS.list.length?Math.max(1,Math.min(P.page||1,3)):0;
   render();resume();
-  log('in','ASMR LOOP prêt · '+KEYS.list.length+' clé(s)'+(VID_MODE?' · combo: '+VID_MODE+' + '+VID_FIELD:''));
+  log('in','ASMR LOOP prêt · proxy CORS activé · '+KEYS.list.length+' clé(s)');
 })();
 </script></body></html>
