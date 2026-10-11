@@ -114,7 +114,12 @@ function toast(m){const d=document.createElement('div');d.textContent=m;$('#toas
 async function slot(kind){
   for(;;){
     if(TASK&&TASK.stop)throw new Error('stop');
-    const live=KEYS.list.filter(o=>!o.off);
+    let live=KEYS.list.filter(o=>!o.off);
+    if(!live.length&&KEYS.list.length){
+      log('wr','toutes clés off → réactivation automatique');
+      KEYS.list.forEach(o=>{o.off=false;o.bad=0;o.cool=0});
+      live=KEYS.list;
+    }
     if(!live.length)throw Object.assign(new Error('Aucune clé active'),{fatal:true});
     const iv=60000/RPM[KEYS.plan][kind]*1.15*F,now=Date.now();
     let best=null,bt=1e18;
@@ -134,7 +139,8 @@ async function call(kind,url,body,tries){
       if(r.ok){o.bad=0;F=Math.max(1,F*0.97);return r}
       const t=(await r.text()).slice(0,200);log('er',kind+' HTTP '+r.status+' '+t);
       if(r.status==429){o.cool=Date.now()+(parseInt(r.headers.get('Retry-After'))||25)*1000;F=Math.min(4,F*1.5);err=new Error('429');continue}
-      if(r.status==401||r.status==402||r.status==403){if(++o.bad>=2){o.off=true}err=new Error('HTTP '+r.status);continue}
+      if(r.status==401){if(++o.bad>=2){o.off=true}err=new Error('HTTP 401');continue}
+      if(r.status==402||r.status==403){o.cool=Date.now()+120000;err=new Error('HTTP '+r.status);continue}
       if(r.status>=500||r.status==408){err=new Error('HTTP '+r.status);await sleep(2000*Math.pow(2,a));continue}
       throw Object.assign(new Error('HTTP '+r.status+' '+t),{fatal:true});
     }catch(e){if(e.fatal||e.message=='stop')throw e;err=e;await sleep(1500*(a+1))}
@@ -323,7 +329,8 @@ async function launch(c){
     if(r.status==400){allRateLimited=false;continue}
     if(r.status==429){o.cool=Date.now()+90000;allRateLimited=true;continue}
     if(r.status==503){o.cool=Date.now()+90000;continue}
-    if([401,403].indexOf(r.status)>=0){allRateLimited=false;o.off=true;continue}
+    if(r.status==401){allRateLimited=false;o.off=true;continue}
+    if(r.status==402||r.status==403){allRateLimited=false;o.cool=Date.now()+120000;continue}
     allRateLimited=false;
   }
 
@@ -400,7 +407,6 @@ async function onClick(e){
     const ks=Array.from(new Set($('#keys').value.split(/[\s,;]+/).map(s=>s.trim()).filter(s=>s.length>=8)));
     if(!ks.length)return toast('Colle au moins une clé');
     KEYS.plan=$('#plan').value;
-    /* FIX : recréer les clés toutes neuves (off:false) à chaque validation */
     KEYS.list=ks.map(k=>mkKey(k));
     dbPut('config',{key:'keys',list:ks,plan:KEYS.plan}).catch(er=>log('wr','clés : '+er.message));
     toast('✓ '+ks.length+' clé(s) active(s)');
