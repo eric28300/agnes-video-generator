@@ -32,6 +32,7 @@ button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-col
 .gc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.gc button.sel{background:var(--a);border-color:var(--a);color:#000}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
 .cd{border:1px solid var(--ln);background:#14141f;padding:12px;position:relative;border-radius:8px}
+.cd .camlab{font:10px var(--m);color:var(--b);letter-spacing:.05em;margin-top:4px}
 .im{position:relative;background:#0d0d18;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:8px;font:11px var(--m);color:var(--dim);border-radius:6px}
 .im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .sp,.sp2{border:2px solid var(--a);border-top-color:transparent;border-radius:50%;animation:r 1s linear infinite}.sp{position:absolute;width:26px;height:26px;z-index:2}.sp2{display:inline-block;width:16px;height:16px;flex:none}@keyframes r{to{transform:rotate(360deg)}}
@@ -48,6 +49,11 @@ button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-col
 #lb{flex:1;overflow:auto;padding:8px 12px;font:12px/1.5 var(--m)}.lg.er{color:#ff8a8a}.lg.wr{color:#ffc477}.lg.ok{color:#7dffb5}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:6px;align-items:center}#toast div{background:#14141f;color:#fff;font:12px var(--m);padding:8px 14px;border:1px solid var(--a);border-radius:5px}
 .kp{display:flex;gap:22px;flex-wrap:wrap;margin:12px 0}.kp b{font:600 22px Orbitron;display:block}
+.toggle{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--ln);background:#0d0d18;border-radius:6px;cursor:pointer;margin:8px 0}
+.toggle input{width:20px;height:20px;cursor:pointer}
+.toggle span{font:12px var(--m);color:var(--ink)}
+.seq-preview{background:#0d0d18;border:1px solid var(--ln);border-radius:6px;padding:12px;margin:8px 0;font:11px var(--m);color:var(--dim);line-height:1.6}
+.seq-preview b{color:var(--a)}
 @media(max-width:700px){h2{font-size:20px}.st{padding:4px 6px;font-size:9px}}
 </style></head><body>
 <header><div class="logo">ASMR<b> LOOP</b><i>VISUEL · SANS VOIX · SANS VISAGE</i></div><nav id="steps"></nav>
@@ -67,9 +73,21 @@ const RPM={free:{img:10,vid:1},plan:{img:100,vid:5}};
 const STEPS=['Clés','Prompts','Images','Vidéos'];
 const BACK=[3,6,12,24,48,96];
 
+/* ═════════════════════════════════════════════════════════════════════
+   ANGLES CAMÉRA POUR LA SÉQUENCE CONTINUE
+   Distribués automatiquement selon l'index du clip
+   ═════════════════════════════════════════════════════════════════════ */
+const CAM_ANGLES=[
+  'wide establishing shot, full composition visible',
+  'slow zoom in, gentle push toward the subject',
+  'extreme macro close-up, focusing on fine details and textures',
+  'medium shot, camera slowly orbiting around the subject',
+  'slow pull back, revealing the full scene one more time'
+];
+
 const PRESETS=[
- {n:'Sablier liquide',p:"Plan macro ultra-réaliste, objectif 100mm, d'un sablier en verre noir mat posé sur une surface en obsidienne polie. À l'intérieur, un liquide visqueux et lumineux composé de filaments cyan et or flotte en apesanteur. Une tige en bois brut descend lentement et perce la paroi du sablier. Le verre se fissure en fractales lumineuses, libérant une poussière d'étoiles qui tourbillonne. Éclairage volumétrique doux, contraste élevé, fond noir profond. Style ASMR macro, ultra-détaillé, cinématographique, 8K. Physique satisfaisante, mouvement lent et hypnotique. Caméra : plan fixe."},
- {n:'Fraise en verre',p:"Plan macro ultra-réaliste, objectif 100mm, d'une fraise en verre transparent posée sur une surface en verre noir polie. Un couteau en argent descend lentement et tranche la fraise. Une fractale de lumière jaillit de l'intérieur. Les morceaux tombent au ralenti, révélant un cœur de verre liquide incandescent. Éclairage volumétrique doux, fond noir profond, reflets brillants. Style ASMR macro, 8K. Physique satisfaisante, mouvement lent. Caméra : plan fixe."},
+ {n:'Sablier liquide',p:"Plan macro ultra-réaliste, objectif 100mm, d'un sablier en verre noir mat posé sur une surface en obsidienne polie. À l'intérieur, un liquide visqueux et lumineux composé de filaments cyan et or flotte en apesanteur. Une tige en bois brut descend lentement et perce la paroi du sablier. Le verre se fissure en fractales lumineuses, libérant une poussière d'étoiles qui tourbillonne. Éclairage volumétrique doux, contraste élevé, fond noir profond. Style ASMR macro, ultra-détaillé, cinématographique, 8K. Physique satisfaisante, mouvement lent et hypnotique."},
+ {n:'Fraise en verre',p:"Plan macro ultra-réaliste, objectif 100mm, d'une fraise en verre transparent posée sur une surface en verre noir polie. Un couteau en argent descend lentement et tranche la fraise. Une fractale de lumière jaillit de l'intérieur. Les morceaux tombent au ralenti, révélant un cœur de verre liquide incandescent. Éclairage volumétrique doux, fond noir profond, reflets brillants. Style ASMR macro, 8K. Physique satisfaisante, mouvement lent."},
  {n:'Savon glacé',p:"Plan macro ultra-réaliste d'un savon artisanal aux couches pastel (rose, bleu, blanc) posé sur du marbre blanc. Texture glacée et translucide. Un couteau en céramique blanche coupe une fine tranche, lame glisse sans effort. Vapeur froide s'échappe. Éclairage froid venant de la gauche, fond blanc cassé. Style ASMR macro, 8K. Physique satisfaisante, coupe lisse."},
  {n:'Miel doré',p:"Plan macro ultra-réaliste d'une cuillère en argent plongeant dans un pot de miel doré et visqueux. Le miel coule lentement en formant un ruban brillant et translucide. La cuillère soulève une portion qui s'étire sans se rompre. Reflets ambrés dansent. Éclairage chaud latéral, fond noir profond. Style ASMR macro, 8K. Mouvement lent et hypnotique."},
  {n:'Glace cristal',p:"Plan macro ultra-réaliste d'un bloc de glace transparente posé sur une surface en ardoise noire. Un pic en métal descend lentement et fracture la glace. Fissures cristallines se propagent en fractales lumineuses. Éclats de glace tombent au ralenti en scintillant. Éclairage froid venant du haut, fond noir, reflets bleutés. Style ASMR macro, 8K."},
@@ -93,10 +111,26 @@ const AR=()=>(P?P.ratio:'9:16').replace(':','/');
 const ref=i=>i&&(i.d||i.u);
 const mkKey=k=>({k,img:0,vid:0,cool:0,bad:0,off:false});
 
-let VID_MODE=null,VID_FIELD=null;
+let VID_MODE=null;
 let keyIdx=0;
 
-function vp(c){return san('Cinematic macro shot. '+c.prompt+' Realistic ambient sound effects only, no music, no subtitles, no on-screen text. Keep the identity, materials and visual style of the first frame identical throughout the shot.')}
+/* ═════════════════════════════════════════════════════════════════════
+   CONSTRUCTION DU PROMPT AVEC SCÈNE GLOBALE + SÉQUENCE
+   ═════════════════════════════════════════════════════════════════════ */
+function vp(c){
+  const idx=P.clips.indexOf(c);
+  const total=P.clips.length;
+  const angle=CAM_ANGLES[idx%CAM_ANGLES.length];
+  let prompt='Cinematic macro shot. ';
+  if(P.globalScene&&P.globalScene.trim())prompt+=P.globalScene.trim()+'. ';
+  prompt+=c.prompt+'. ';
+  if(P.continuity&&total>1){
+    prompt+='This is clip '+(idx+1)+' of '+total+'. '+angle+'. ';
+    prompt+='Keep the exact same scene, same lighting, same background, same materials, same color palette as the other clips. Smooth continuation. ';
+  }
+  prompt+='Realistic ambient sound effects only, no music, no subtitles, no on-screen text.';
+  return san(prompt);
+}
 
 function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('asmr_loop_v1',1);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('clips'))d.createObjectStore('clips',{keyPath:'id'});if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'})}})}
 const tx=(s,m,f)=>new Promise((res,rej)=>{try{const r=f(db.transaction(s,m).objectStore(s));r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});
@@ -115,11 +149,7 @@ async function slot(kind){
   for(;;){
     if(TASK&&TASK.stop)throw new Error('stop');
     let live=KEYS.list.filter(o=>!o.off);
-    if(!live.length&&KEYS.list.length){
-      log('wr','toutes clés off → réactivation automatique');
-      KEYS.list.forEach(o=>{o.off=false;o.bad=0;o.cool=0});
-      live=KEYS.list;
-    }
+    if(!live.length&&KEYS.list.length){log('wr','toutes clés off → réactivation automatique');KEYS.list.forEach(o=>{o.off=false;o.bad=0;o.cool=0});live=KEYS.list}
     if(!live.length)throw Object.assign(new Error('Aucune clé active'),{fatal:true});
     const iv=60000/RPM[KEYS.plan][kind]*1.15*F,now=Date.now();
     let best=null,bt=1e18;
@@ -179,8 +209,27 @@ function ensureRef(img){
   return img._conv;
 }
 
-const newP=()=>({id:uid()+uid(),created:Date.now(),upd:Date.now(),page:0,last:0,max:0,ratio:'9:16',clips:[],nclips:3,sub:{},q:{step:0,next:0,st:'idle',on:false}});
-function setP(p){P=p;P.clips=P.clips||[];P.sub=P.sub||{};Q=P.q=P.q||{step:0,next:0,st:'idle',on:false};P.clips.forEach(c=>{c.busy=false;if(c.vst=='run'&&!c.task)c.vst='wait'});dbPut('config',{key:'last',v:P.id})}
+/* ═════════════════════════════════════════════════════════════════════
+   MODÈLE DE PROJET — ajouts : globalScene, continuity, duration
+   ═════════════════════════════════════════════════════════════════════ */
+const newP=()=>({
+  id:uid()+uid(),created:Date.now(),upd:Date.now(),
+  page:0,last:0,max:0,ratio:'9:16',
+  clips:[],nclips:3,
+  globalScene:'',
+  continuity:true,
+  duration:10,
+  sub:{},q:{step:0,next:0,st:'idle',on:false}
+});
+function setP(p){
+  P=p;P.clips=P.clips||[];P.sub=P.sub||{};
+  if(typeof P.globalScene!=='string')P.globalScene='';
+  if(typeof P.continuity!=='boolean')P.continuity=true;
+  if(typeof P.duration!=='number')P.duration=10;
+  Q=P.q=P.q||{step:0,next:0,st:'idle',on:false};
+  P.clips.forEach(c=>{c.busy=false;if(c.vst=='run'&&!c.task)c.vst='wait'});
+  dbPut('config',{key:'last',v:P.id});
+}
 const anyBusy=()=>P.clips.some(c=>c.busy);
 function find(id){for(let i=0;i<P.clips.length;i++)if(P.clips[i].id==id)return{t:'c',o:P.clips[i],i:i};return null}
 async function genImg(id){
@@ -198,12 +247,17 @@ const foot=(prev,next)=>'<div class="ft">'+(prev||'<span></span>')+(next||'')+'<
 const nextBtn=(a,l,x)=>'<button class="big" id="nx" data-a="'+a+'" data-lbl="'+esc(l)+'" '+(x||'')+'>'+l+' →</button>';
 function syncNext(){const b=$('#nx');if(!b)return;const bz=anyBusy();b.disabled=bz||b.dataset.off=='1';b.textContent=bz?'Images en cours…':b.dataset.lbl+' →'}
 const imBox=(o,r)=>'<div class="im" style="aspect-ratio:'+(r||AR())+'">'+(o.img?'<img src="'+esc(ref(o.img))+'" alt="">':'<span>'+(o.busy?'création…':'pas d\'image')+'</span>')+(o.busy?'<i class="sp"></i>':'')+'</div>';
-const clipCard=(c,i)=>'<div class="cd" id="c-'+c.id+'"><div class="lab">Clip '+(i+1)+'</div>'+imBox(c)+
+const clipCard=(c,i)=>{
+  const total=P.clips.length;
+  const angle=P.continuity&&total>1?CAM_ANGLES[i%CAM_ANGLES.length]:'';
+  return '<div class="cd" id="c-'+c.id+'"><div class="lab">Clip '+(i+1)+(total>1?' / '+total:'')+'</div>'+imBox(c)+
   '<textarea data-f="prompt" data-id="'+c.id+'" rows="5" '+(c.busy?'disabled':'')+'>'+esc(c.prompt)+'</textarea>'+
+  (angle?'<div class="camlab">🎬 Angle auto : '+esc(angle)+'</div>':'')+
   '<div class="rw">'+btn('genimg','↻ Image','sm','data-id="'+c.id+'" '+(c.busy?'disabled':''))+
   '<label class="sm btn" style="cursor:pointer">⬆ Photo<input type="file" accept="image/*" hidden data-up="'+c.id+'"></label>'+
   btn('delclip','🗑','sm','data-id="'+c.id+'" '+(c.busy?'disabled':''))+'</div>'+
   (c.err?'<div class="lab" style="color:var(--er);margin-top:4px">'+esc(c.err)+'</div>':'')+'</div>';
+};
 const tile=(c,i)=>'<div class="tl '+(c.vst||'wait')+'" id="t-'+c.id+'"><div class="th" style="aspect-ratio:'+AR()+'">'+
   (c.video?'<video src="'+esc(c.video)+'" controls playsinline preload="metadata" data-id="'+c.id+'"></video>':c.img?'<img src="'+esc(ref(c.img))+'" alt="">':'')+
   '<b class="tg">'+(i+1)+'</b></div><div class="tx">'+esc(c.prompt.slice(0,60))+'…</div></div>';
@@ -250,15 +304,38 @@ function runImages(){
 
 const V={0:{},1:{},2:{},3:{}};
 V[0].cfg=()=>'<div class="hero">'+hd(1,'Tes clés API <b>Agnès</b>')+guide('👉 Colle ta clé Agnès. <b>1 seule clé suffit</b> (les clés d\'un même compte partagent le quota).')+'<textarea id="keys" rows="8" spellcheck="false" placeholder="sk-…">'+esc(KEYS.list.map(k=>k.k).join('\n'))+'</textarea>'+'<label class="f"><span class="lab">Type de clés</span><select id="plan"><option value="free" '+(KEYS.plan=='free'?'selected':'')+'>Gratuites</option><option value="plan" '+(KEYS.plan=='plan'?'selected':'')+'>Payantes</option></select></label>'+'<div id="kl" class="chips"></div>'+foot('',nextBtn('savekeys','Valider mes clés'))+'</div>';
-V[1].cfg=()=>'<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+guide('👉 Choisis un preset ou écris ton prompt. Le nombre de clips = nombre de vidéos que tu vas générer.')+
-  '<h3>1 · Format</h3><div class="gc">'+[['9:16','Portrait 9:16'],['1:1','Carré 1:1'],['16:9','Paysage 16:9']].map(r=>'<button class="'+(P.ratio==r[0]?'sel':'')+'" data-a="ratio" data-n="'+r[0]+'">'+r[1]+'</button>').join('')+'</div>'+
-  '<h3>2 · Presets</h3><div class="gc">'+PRESETS.map((p,i)=>'<button data-a="preset" data-i="'+i+'">'+esc(p.n)+'</button>').join('')+'</div>'+
-  '<h3>3 · Clips</h3><div class="gc">'+[[1,'1'],[3,'3'],[5,'5'],[8,'8'],[10,'10']].map(n=>'<button class="'+((P.nclips||3)==n[0]?'sel':'')+'" data-a="nclips" data-n="'+n[0]+'">'+n[1]+'</button>').join('')+'</div>'+
-  '<div class="grid">'+P.clips.map(clipCard).join('')+'</div><div class="rw" style="margin-top:10px">'+btn('addclip','+ Ajouter un clip')+'</div>'+
+
+/* ═════════════════════════════════════════════════════════════════════
+   ÉTAPE 2 — PROMPTS avec Scène globale + Durée + Séquence continue
+   ═════════════════════════════════════════════════════════════════════ */
+V[1].cfg=()=>{
+  const total=P.clips.length;
+  const seqPreview=[];for(let i=0;i<Math.min(total,5);i++)seqPreview.push('Clip '+(i+1)+' : '+CAM_ANGLES[i%CAM_ANGLES.length]);
+  const totalSec=(P.duration||10)*total;
+  return '<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+
+  guide('👉 Décris ta <b>scène globale</b>, choisis la durée, et écris le prompt de chaque clip. Le mode séquence ajoute automatiquement des angles caméra variés.')+
+  '<h3>1 · Scène globale (appliquée à tous les clips)</h3>'+
+  '<textarea id="gscene" rows="3" placeholder="Ex : Sablier en verre noir mat, liquide cyan et or, fond noir, éclairage macro cinématographique">'+esc(P.globalScene||'')+'</textarea>'+
+  '<h3>2 · Durée par clip</h3>'+
+  '<div class="gc">'+[5,8,10,12].map(d=>'<button class="'+((P.duration||10)==d?'sel':'')+'" data-a="dur" data-n="'+d+'">'+d+' secondes</button>').join('')+'</div>'+
+  '<div class="seq-preview">⏱ Durée totale estimée : <b>'+totalSec+' secondes</b> ('+total+' clips × '+(P.duration||10)+'s)</div>'+
+  '<h3>3 · Mode séquence continue</h3>'+
+  '<label class="toggle"><input type="checkbox" data-a="cont" '+(P.continuity?'checked':'')+'><span>'+(P.continuity?'✅ Activé — angles caméra auto, cohérence garantie':'⬜ Désactivé — chaque clip est indépendant')+'</span></label>'+
+  (P.continuity?'<div class="seq-preview"><b>Ordre des angles caméra :</b><br>'+seqPreview.join('<br>')+'</div>':'')+
+  '<h3>4 · Format</h3>'+
+  '<div class="gc">'+[['9:16','Portrait 9:16'],['1:1','Carré 1:1'],['16:9','Paysage 16:9']].map(r=>'<button class="'+(P.ratio==r[0]?'sel':'')+'" data-a="ratio" data-n="'+r[0]+'">'+r[1]+'</button>').join('')+'</div>'+
+  '<h3>5 · Presets</h3>'+
+  '<div class="gc">'+PRESETS.map((p,i)=>'<button data-a="preset" data-i="'+i+'">'+esc(p.n)+'</button>').join('')+'</div>'+
+  '<h3>6 · Nombre de clips</h3>'+
+  '<div class="gc">'+[[1,'1'],[3,'3'],[5,'5'],[8,'8'],[10,'10']].map(n=>'<button class="'+((P.nclips||3)==n[0]?'sel':'')+'" data-a="nclips" data-n="'+n[0]+'">'+n[1]+'</button>').join('')+'</div>'+
+  '<h3>7 · Tes clips</h3>'+
+  '<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+
+  '<div class="rw" style="margin-top:10px">'+btn('addclip','+ Ajouter un clip')+'</div>'+
   foot(btn('go','← Précédent','','data-n="0"'),nextBtn('go','Générer les images',P.clips.length?'data-n="2"':'disabled data-off="1"'))+'</div>';
+};
 V[2].cfg=()=>'<div class="hero">'+hd(3,'Prêt à générer les <b>images</b>')+guide('✓ Clique sur le bouton pour lancer la création des images.')+'<div class="rw">'+btn('startimg','✦ Lancer la génération','big')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'))+'</div>';
 V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+guide('✓ Vérifie-les, régénère si besoin, puis passe aux vidéos.','go')+'<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'),nextBtn('go','Passer aux vidéos','data-n="3"'))+'</div>';
-V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">Format Agnès officiel (validé support) : mode=reference + images[] + seconds + size 720P. Relance auto toutes les 2min30.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
+V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">Séquence de '+P.clips.length+' clips × '+(P.duration||10)+'s = <b>'+((P.duration||10)*P.clips.length)+' secondes</b> au total. Relance auto toutes les 2min30.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
 
 function view(){if(TASK)return workView();const s=P.sub[page]||'cfg';const v=V[page];const fn=v[s]||v.cfg;return fn?fn():'<div class="hero"><div class="guide er">Vue introuvable</div></div>'}
 function render(keep){
@@ -276,8 +353,8 @@ function keysChips(){const e=$('#kl');if(!e)return;e.innerHTML=KEYS.list.map((k,
 
 const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function qHtml(ok,left,total){
-  if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Télécharge-les et assemble-les dans CapCut.','go');
-  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 Format officiel : v2.5-flash + reference + images[] + 720P.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
+  if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Assemble-les dans CapCut pour créer ta vidéo finale de '+((P.duration||10)*total)+'s.','go');
+  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 Séquence de '+total+' clips × '+(P.duration||10)+'s = '+((P.duration||10)*total)+' secondes.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
   if(!Q.on)return guide('<b>En pause.</b> '+ok+' prête(s), '+left+' restante(s).','wt')+'<div class="rw">'+btn('qstart','▶ Reprendre','big')+'</div>';
   if(Q.st=='full')return guide('<b>⏳ Nouvel essai dans <b id="cd" style="font:600 18px Orbitron">'+fmt((Q.next-Date.now())/1000)+'</b></b>','wt')+'<div class="rw">'+btn('qnow','Tester','sm')+btn('qpause','❚❚ Pause','sm')+'</div>';
   return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s).'+(VID_MODE?' <b>'+VID_MODE+'</b>':''))+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
@@ -299,10 +376,13 @@ async function launch(c){
   const fr=c.img.u&&c.img.u.indexOf('data:')!==0?c.img.u:ref(c.img);
   c.vst='run';c.err='';refresh(c.id);
 
+  const secs=String(P.duration||10);
+  const prompt=vp(c);
+
   const strategies=[
-    {n:'v2.5-flash reference',f:()=>({model:'agnes-video-2.5-flash',prompt:vp(c),mode:'reference',images:[fr],seconds:'5',size:'720P',aspect_ratio:P.ratio})},
-    {n:'v2.5-flash keyframe',f:()=>({model:'agnes-video-2.5-flash',prompt:vp(c),mode:'keyframe',first_frame:fr,seconds:'5',size:'720P',aspect_ratio:P.ratio})},
-    {n:'v2.5-flash text',f:()=>({model:'agnes-video-2.5-flash',prompt:vp(c),mode:'text',seconds:'5',size:'720P',aspect_ratio:P.ratio})}
+    {n:'v2.5-flash reference',f:()=>({model:'agnes-video-2.5-flash',prompt:prompt,mode:'reference',images:[fr],seconds:secs,size:'720P',aspect_ratio:P.ratio})},
+    {n:'v2.5-flash keyframe',f:()=>({model:'agnes-video-2.5-flash',prompt:prompt,mode:'keyframe',first_frame:fr,seconds:secs,size:'720P',aspect_ratio:P.ratio})},
+    {n:'v2.5-flash text',f:()=>({model:'agnes-video-2.5-flash',prompt:prompt,mode:'text',seconds:secs,size:'720P',aspect_ratio:P.ratio})}
   ];
 
   let success=null,tried=0,allRateLimited=true;
@@ -311,17 +391,17 @@ async function launch(c){
     tried++;
     if(tried>1)await sleep(5000);
     const body=s.f();
-    log('in','stratégie '+tried+' : '+s.n);
+    log('in','stratégie '+tried+' : '+s.n+' ('+secs+'s)');
     let r;
     try{
       r=await fetch(PX(AGNES_API+'/videos'),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)});
     }catch(e){log('er','réseau '+s.n+' : '+e.message);continue}
     if(r.ok){
       success={r:r,strat:s.n,key:o.k};
-      log('ok','✔✔✔ SUCCÈS : '+s.n);
+      log('ok','✔✔✔ SUCCÈS : '+s.n+' · '+secs+'s');
       VID_MODE=s.n;
       localStorage.setItem('asmr_vid_mode',VID_MODE);
-      toast('🎬 '+s.n+' → vidéo lancée !');
+      toast('🎬 '+s.n+' → vidéo lancée ('+secs+'s)');
       break;
     }
     const t=(await r.text().catch(()=>'')).slice(0,300);
@@ -393,7 +473,7 @@ function qstart(){
   if(Q.st=='paused'||Q.st=='idle')Q.st='run';
   if(Q.st!='full')Q.next=0;
   wake();save();qui();
-  log('in','format officiel Agnès · relance 2min30');
+  log('in','séquence '+P.clips.length+' clips × '+(P.duration||10)+'s = '+((P.duration||10)*P.clips.length)+'s');
 }
 
 const OK_DURING=['con','stoptask','retrytask','canceltask'];
@@ -413,6 +493,7 @@ async function onClick(e){
     go(Math.max(1,P.last||1));
   }
   else if(a=='ratio'){P.ratio=b.dataset.n;render(true)}
+  else if(a=='dur'){P.duration=+b.dataset.n;render(true)}
   else if(a=='nclips'){const n=+b.dataset.n;P.nclips=n;while(P.clips.length<n){const preset=PRESETS[P.clips.length%PRESETS.length];P.clips.push({id:uid(),prompt:preset.p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false})}while(P.clips.length>n)P.clips.pop();render(true)}
   else if(a=='preset'){const p=PRESETS[+b.dataset.i];if(P.clips.length&&confirm('Remplacer le prompt du 1er clip ?')){P.clips[0].prompt=p.p;render(true)}}
   else if(a=='addclip'){const preset=PRESETS[P.clips.length%PRESETS.length];P.clips.push({id:uid(),prompt:preset.p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false});render(true)}
@@ -431,9 +512,20 @@ async function onClick(e){
 document.addEventListener('click',e=>{onClick(e).catch(er=>{log('er','action : '+er.message)})});
 window.addEventListener('error',e=>{log('er',e.message)});
 window.addEventListener('unhandledrejection',e=>{log('er','promesse : '+(e.reason&&e.reason.message||e.reason))});
-document.addEventListener('input',e=>{const t=e.target;if(!t.dataset.f||!P)return;const f=find(t.dataset.id);if(!f)return;f.o[t.dataset.f]=t.value;save()});
+
+/* INPUT : prompt clip + scène globale */
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(!P)return;
+  if(t.id==='gscene'){P.globalScene=t.value;save();return}
+  if(!t.dataset.f)return;
+  const f=find(t.dataset.id);if(!f)return;
+  f.o[t.dataset.f]=t.value;save();
+});
+/* CHANGE : checkbox séquence + upload photo */
 document.addEventListener('change',async e=>{
   const t=e.target;
+  if(t.dataset.a==='cont'){P.continuity=t.checked;render(true);return}
   if(t.dataset.up){
     const f=t.files[0];if(!f)return;const c=find(t.dataset.up);if(!c)return;
     const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1024/Math.max(im.width,im.height));const cv=document.createElement('canvas');cv.width=Math.round(im.width*s);cv.height=Math.round(im.height*s);cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);const d=cv.toDataURL('image/jpeg',0.88);c.o.img={u:d,d:d};c.o.err='';refresh(c.o.id);save()};im.src=fr.result};fr.readAsDataURL(f);
@@ -465,6 +557,6 @@ function resume(){P.clips.forEach(c=>{if(c.vst=='run'&&c.task){if(KEYS.list.some
   }catch(e){setP(newP())}
   page=KEYS.list.length?Math.max(1,Math.min(P.page||1,3)):0;
   render();resume();
-  log('in','ASMR LOOP prêt · v2.5-flash · relance 2min30');
+  log('in','ASMR LOOP prêt · séquence '+P.clips.length+' clips × '+(P.duration||10)+'s');
 })();
 </script></body></html>
