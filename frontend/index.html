@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ASMR LOOP · Studio</title>
+<title>SCI-FI STUDIO · Production</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-:root{--bg:#0a0a12;--p:#14141f;--ink:#e8e8f5;--dim:#7a7a94;--ln:#25253a;--a:#00d4ff;--b:#ff5a1f;--ok:#12b76a;--er:#e5383b;--m:'Share Tech Mono',ui-monospace,monospace}
+:root{--bg:#0a0a12;--p:#14141f;--ink:#e8e8f5;--dim:#7a7a94;--ln:#25253a;--a:#00d4ff;--b:#ff5a1f;--ok:#12b76a;--er:#e5383b;--gold:#ffb84d;--m:'Share Tech Mono',ui-monospace,monospace}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font:16px/1.5 Rajdhani,system-ui,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;padding-bottom:70px}
 body::before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse at top,#1a1a2e 0%,#0a0a12 60%)}
@@ -13,145 +14,234 @@ header{position:sticky;top:0;z-index:20;background:rgba(10,10,18,.92);backdrop-f
 .st{font:11px var(--m);letter-spacing:.06em;text-transform:uppercase;padding:5px 9px;border:1px solid var(--ln);background:#14141f;color:var(--dim);cursor:pointer}
 .st.ok{color:var(--ink);border-color:var(--a)}.st.on{background:var(--a);color:#000;border-color:var(--a)}.st:disabled{opacity:.4;cursor:not-allowed}
 .hb{display:flex;gap:6px;align-items:center}
-main{max-width:1100px;margin:0 auto;padding:22px 16px}
+main{max-width:1200px;margin:0 auto;padding:22px 16px}
 .hero{background:var(--p);border:1px solid var(--ln);padding:22px;margin-bottom:16px;border-radius:8px}
 .lab{font:11px var(--m);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 h2{font:600 26px Orbitron;letter-spacing:.04em;margin:6px 0 8px}h2 b{color:var(--a)}h3{font:600 15px Orbitron;letter-spacing:.06em;margin:16px 0 8px}
-p.sub{color:var(--dim);margin-bottom:12px;max-width:780px}
 .guide{display:flex;gap:12px;align-items:center;border:1px solid var(--a);background:rgba(0,212,255,.08);padding:12px 14px;margin:10px 0 16px;border-radius:6px;font-size:15px}
-.guide.go{border-color:var(--ok);background:rgba(18,183,106,.1)}.guide.er{border-color:var(--er);background:rgba(229,56,59,.1)}.guide.wt{border-color:var(--b);background:rgba(255,90,31,.08)}
+.guide.go{border-color:var(--ok);background:rgba(18,183,106,.1)}.guide.er{border-color:var(--er);background:rgba(229,56,59,.1)}.guide.wt{border-color:var(--b);background:rgba(255,90,31,.08)}.guide.gd{border-color:var(--gold);background:rgba(255,184,77,.08)}
 textarea,input[type=text],input[type=password],select{width:100%;font:13px var(--m);padding:10px;border:1px solid var(--ln);background:#0d0d18;color:var(--ink);outline:0;border-radius:5px}
-textarea:focus,input:focus,select:focus{border-color:var(--a)}textarea{resize:vertical;min-height:80px;margin:4px 0}
+textarea:focus,input:focus,select:focus{border-color:var(--a)}textarea{resize:vertical;min-height:70px;margin:4px 0}
 label.f{display:block;margin:8px 0}label.f span{display:block;margin-bottom:4px}
 button,.btn{font:600 12px var(--m);letter-spacing:.1em;text-transform:uppercase;padding:10px 16px;border:1px solid var(--ink);background:#14141f;color:var(--ink);cursor:pointer;border-radius:5px;display:inline-block}
 button:hover:not(:disabled),.btn:hover{background:var(--a);color:#000;border-color:var(--a)}button:disabled{opacity:.35;cursor:not-allowed}
-.big{background:var(--a);border-color:var(--a);color:#000;padding:14px 26px;font-size:14px;letter-spacing:.16em}.big:hover:not(:disabled){background:#00b8e0;border-color:#00b8e0}
+.big{background:var(--a);border-color:var(--a);color:#000;padding:14px 26px;font-size:14px;letter-spacing:.16em}
+.big:hover:not(:disabled){background:#00b8e0;border-color:#00b8e0}
 .sm{padding:6px 11px;font-size:10px}
+.gold{background:var(--gold);border-color:var(--gold);color:#000}.gold:hover:not(:disabled){background:#e5a13a;border-color:#e5a13a}
+.ghost{background:transparent;border-color:var(--ln);color:var(--dim)}.ghost:hover:not(:disabled){background:var(--ln);color:var(--ink);border-color:var(--ln)}
 .ft{display:flex;justify-content:space-between;gap:10px;margin-top:20px;flex-wrap:wrap;align-items:center}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}.chip{font:11px var(--m);padding:3px 8px;border:1px solid var(--ok);color:var(--ok);border-radius:20px}.chip.off{border-color:var(--er);color:var(--er)}
-.gc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.gc button.sel{background:var(--a);border-color:var(--a);color:#000}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.grid6{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
 .cd{border:1px solid var(--ln);background:#14141f;padding:12px;position:relative;border-radius:8px}
-.cd .camlab{font:10px var(--m);color:var(--b);letter-spacing:.05em;margin-top:4px}
-.im{position:relative;background:#0d0d18;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:8px;font:11px var(--m);color:var(--dim);border-radius:6px}
+.cd.char{border-color:#2a2a4a;background:linear-gradient(180deg,#14141f 0%,#18182a 100%)}
+.cd.panel.principal{border-color:var(--gold)}
+.im{position:relative;background:#0d0d18;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:8px;font:11px var(--m);color:var(--dim);border-radius:6px;min-height:100px}
 .im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.sp,.sp2{border:2px solid var(--a);border-top-color:transparent;border-radius:50%;animation:r 1s linear infinite}.sp{position:absolute;width:26px;height:26px;z-index:2}.sp2{display:inline-block;width:16px;height:16px;flex:none}@keyframes r{to{transform:rotate(360deg)}}
+.sp,.sp2{border:2px solid var(--a);border-top-color:transparent;border-radius:50%;animation:r 1s linear infinite}.sp{position:absolute;width:26px;height:26px;z-index:2}.sp2{display:inline-block;width:14px;height:14px;flex:none}@keyframes r{to{transform:rotate(360deg)}}
 .rw{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;align-items:center}
-.bar{height:6px;background:var(--ln);margin:12px 0;border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--a);width:0;transition:width .4s}
-.feed{margin:10px 0}.fi{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--ln);font-size:14px}.fi.ok{color:var(--ok)}.fi.er{color:var(--er)}.fi em{margin-left:auto;font:11px var(--m);color:var(--dim);font-style:normal}.fi .ic{width:18px;text-align:center;flex:none}
-.tl{border:1px solid var(--ln);background:#14141f;border-radius:8px;overflow:hidden}
-.tl.ok{border-color:var(--ok)}.tl.run{border-color:var(--a)}.tl.er{border-color:var(--er)}
-.th{position:relative;background:#0d0d18;overflow:hidden}
-.th img,.th video{width:100%;height:100%;display:block;object-fit:cover}
-.tg{position:absolute;top:6px;left:6px;z-index:2;font:10px var(--m);background:rgba(0,0,0,.7);color:#fff;padding:2px 6px;border-radius:3px}
-.tx{font-size:12px;padding:6px 10px;color:var(--dim);font-family:var(--m);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.info{background:#0d0d18;border:1px solid var(--ln);border-radius:6px;padding:10px 12px;font:11px var(--m);color:var(--dim);line-height:1.6;margin:6px 0}
+.info b{color:var(--a)}
+.badge{display:inline-block;font:10px var(--m);padding:2px 6px;border-radius:3px;border:1px solid var(--ln);color:var(--dim);margin-left:6px}
+.badge.gold{border-color:var(--gold);color:var(--gold)}.badge.ok{border-color:var(--ok);color:var(--ok)}.badge.er{border-color:var(--er);color:var(--er)}.badge.warn{border-color:var(--b);color:var(--b)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:80;display:none;align-items:center;justify-content:center;padding:16px}
+.modal.on{display:flex}
+.modal-inner{background:#14141f;max-width:520px;width:100%;padding:22px;border:1px solid var(--a);border-radius:8px;max-height:85vh;overflow:auto}
+.kv{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--ln);font:12px var(--m);color:var(--dim)}
+.kv b{color:var(--ink)}
 #con{position:fixed;left:0;right:0;bottom:0;height:40vh;z-index:50;background:#080810;color:#7dd3fc;transform:translateY(100%);transition:transform .25s;display:flex;flex-direction:column;border-top:1px solid var(--ln)}#con.on{transform:none}
-#lb{flex:1;overflow:auto;padding:8px 12px;font:12px/1.5 var(--m)}.lg.er{color:#ff8a8a}.lg.wr{color:#ffc477}.lg.ok{color:#7dffb5}
+#lb{flex:1;overflow:auto;padding:8px 12px;font:12px/1.5 var(--m)}.lg.er{color:#ff8a8a}.lg.wr{color:#ffc477}.lg.ok{color:#7dffb5}.lg.in{color:#9ecbff}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:6px;align-items:center}#toast div{background:#14141f;color:#fff;font:12px var(--m);padding:8px 14px;border:1px solid var(--a);border-radius:5px}
-.kp{display:flex;gap:22px;flex-wrap:wrap;margin:12px 0}.kp b{font:600 22px Orbitron;display:block}
-.toggle{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--ln);background:#0d0d18;border-radius:6px;cursor:pointer;margin:8px 0}
-.toggle input{width:20px;height:20px;cursor:pointer}
-.toggle span{font:12px var(--m);color:var(--ink)}
-.seq-preview{background:#0d0d18;border:1px solid var(--ln);border-radius:6px;padding:12px;margin:8px 0;font:11px var(--m);color:var(--dim);line-height:1.6}
-.seq-preview b{color:var(--a)}
-@media(max-width:700px){h2{font-size:20px}.st{padding:4px 6px;font-size:9px}}
+.key-row{display:flex;gap:8px;align-items:stretch}
+.key-row input{flex:1}
+.storage-bar{height:4px;background:var(--ln);border-radius:2px;overflow:hidden;margin-top:4px}
+.storage-bar i{display:block;height:100%;background:var(--a);width:0}
+@media(max-width:700px){h2{font-size:20px}.st{padding:4px 6px;font-size:9px}.grid6{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
 </style></head><body>
-<header><div class="logo">ASMR<b> LOOP</b><i>VISUEL · SANS VOIX · SANS VISAGE</i></div><nav id="steps"></nav>
-<div class="hb"><span class="chip" id="qchip"></span><button class="sm" data-a="sess">Mes clips</button><button class="sm" data-a="con">Journal</button></div></header>
+<header><div class="logo">SCI-FI<b> STUDIO</b><i>FAMILLE EXTRATERRESTRE · OBSERVATION DE LA TERRE</i></div><nav id="steps"></nav>
+<div class="hb"><span class="chip" id="qchip"></span><button class="sm" data-a="sess">Projets</button><button class="sm" data-a="con">Journal</button></div></header>
 <main id="main"></main>
 <div id="con"><div style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #1e1e2e;font:12px var(--m)"><span>JOURNAL TECHNIQUE</span><button class="sm" data-a="con" style="color:#7dd3fc;border-color:#2a2a3e">✕</button></div><div id="lb"></div></div>
 <div id="toast"></div>
+<div id="modal" class="modal"><div class="modal-inner" id="modalInner"></div></div>
 
 <script>
+'use strict';
+/* ═════════════════════════════════════════════════════════════════════
+   CONFIG
+   ═════════════════════════════════════════════════════════════════════ */
 const AGNES_API='https://apihub.agnes-ai.com/v1';
 const AGNES_POLL='https://apihub.agnes-ai.com/agnesapi';
 const PROXY='https://agnes-proxy-phi.vercel.app/api/proxy?url=';
 const PX=u=>PROXY+encodeURIComponent(u);
-
-const IMG='agnes-image-2.5-flash',VID='agnes-video-2.5-flash';
+const IMG='agnes-image-2.5-flash';
+const VID='agnes-video-2.5-flash';
 const RPM={free:{img:10,vid:1},plan:{img:100,vid:5}};
-const STEPS=['Clés','Prompts','Images','Vidéos'];
-const BACK=[3,6,12,24,48,96];
+const STEPS=['Clés','Personnages','Storyboard','Production'];
+const MAX_REF=4;
+const SCENE_STYLE='Style cinématographique science-fiction, palette bleu-violet profond avec touches dorées, éclairage réaliste, ultra-détaillé, photoréaliste, 8K, ambiance onirique et contemplative';
 
 /* ═════════════════════════════════════════════════════════════════════
-   ANGLES CAMÉRA POUR LA SÉQUENCE CONTINUE
-   Distribués automatiquement selon l'index du clip
+   DONNÉES PAR DÉFAUT
    ═════════════════════════════════════════════════════════════════════ */
-const CAM_ANGLES=[
-  'wide establishing shot, full composition visible',
-  'slow zoom in, gentle push toward the subject',
-  'extreme macro close-up, focusing on fine details and textures',
-  'medium shot, camera slowly orbiting around the subject',
-  'slow pull back, revealing the full scene one more time'
+const CHAR_DEFAULTS=[
+  {id:'pere',name:'Père',desc:'Extraterrestre humanoïde adulte mâle, peau bleu-gris subtile, yeux ambrés lumineux, traits extraterrestres reconnaissables mais élégants, vêtements sombres cohérents avec liserés dorés'},
+  {id:'mere',name:'Mère',desc:'Extraterrestre humanoïde adulte femelle, peau bleu-gris subtile, yeux ambrés lumineux, traits extraterrestres reconnaissables mais élégants, vêtements sombres cohérents avec liserés dorés'},
+  {id:'enfant',name:'Enfant',desc:'Extraterrestre humanoïde enfant, peau bleu-gris subtile, yeux ambrés lumineux plus grands, traits extraterrestres reconnaissables, vêtements sombres cohérents avec liserés dorés'}
+];
+const VIEW_DEFS=[
+  {id:'face',label:'Face',en:'front view head and shoulders portrait'},
+  {id:'tq',label:'Trois-quarts',en:'three-quarter view head and shoulders portrait'},
+  {id:'profil',label:'Profil',en:'side profile view head and shoulders'},
+  {id:'dos',label:'Dos',en:'back view head and shoulders'},
+  {id:'pied_face',label:'Pied face',en:'full body standing pose, front view'},
+  {id:'pied_tq',label:'Pied trois-quarts',en:'full body standing pose, three-quarter view'}
+];
+const BOARDS_DEFAULTS=[
+  {id:'S01',title:'La Terre depuis l\'espace',panels:[
+    {id:'S01_P01',desc:'Vue large de la Terre depuis l\'espace',chars:[],decor:'Espace profond',framing:'Plan large fixe',action:'Rotation très lente',imgPrompt:'Cinematic wide shot of planet Earth from space, deep blue oceans, visible continents, glowing atmosphere, starry background, photorealistic, 8K',animPrompt:'Slow rotation of the Earth, clouds drifting naturally, subtle camera drift',duration:4},
+    {id:'S01_P02',desc:'Zoom vers l\'atmosphère, nuages en mouvement',chars:[],decor:'Espace proche',framing:'Zoom avant lent',action:'Caméra avance',imgPrompt:'Cinematic close approach to Earth atmosphere, white clouds drifting, blue oceans, sunlight glinting, 8K',animPrompt:'Slow forward push, clouds drifting',duration:4},
+    {id:'S01_P03',desc:'Recul, silhouette sombre au premier plan',chars:[],decor:'Espace',framing:'Travelling arrière',action:'Révélation d\'un objet hors champ',imgPrompt:'Cinematic pull back from Earth, dark silhouette in foreground, deep space, stars, mysterious mood, 8K',animPrompt:'Slow camera pull back, silhouette entering frame',duration:4}
+  ]},
+  {id:'S02',title:'Révélation de l\'appareil',panels:[
+    {id:'S02_P01',desc:'Plan large du jardin extraterrestre au crépuscule',chars:[],decor:'Jardin extraterrestre',framing:'Plan large',action:'Présentation du décor',imgPrompt:'Cinematic wide shot of an alien garden at dusk, strange vegetation, a cylindrical observation device, blue-violet tones with golden accents, 8K',animPrompt:'Slow camera drift, leaves gently moving',duration:4},
+    {id:'S02_P02',desc:'Gros plan sur l\'appareil, symboles pulsant',chars:[],decor:'Appareil avancé',framing:'Gros plan macro',action:'Symboles pulsent',imgPrompt:'Extreme close-up of an advanced alien observation device, glowing blue and gold symbols, metallic and crystalline textures, 8K',animPrompt:'Glowing symbols pulsing slowly',duration:4},
+    {id:'S02_P03',desc:'Le dôme s\'ouvre, sphère de verre avec la Terre miniature',chars:[],decor:'Appareil ouvert',framing:'Plan rapproché',action:'Ouverture mécanique',imgPrompt:'Cinematic shot of an alien device opening, glass sphere showing a miniature Earth, glowing edge lights, blue-violet and gold, 8K',animPrompt:'Mechanical opening, Earth sphere slowly rotating',duration:4},
+    {id:'S02_P04',desc:'Reflet de la Terre dans la surface de l\'appareil',chars:[],decor:'Appareil',framing:'Insert',action:'Reflet qui tourne',imgPrompt:'Insert shot, reflection of Earth in the polished surface of an alien device, blue and gold light, cinematic, 8K',animPrompt:'Earth reflection slowly rotating',duration:4}
+  ]},
+  {id:'S03',title:'Révélation de la famille',panels:[
+    {id:'S03_P01',desc:'Le père entre dans le cadre',chars:['pere'],decor:'Jardin extraterrestre',framing:'Plan moyen',action:'Entrée du père',imgPrompt:'Cinematic medium shot, alien father entering frame, looking up at an observation device, alien garden, blue-violet lighting, 8K',animPrompt:'Father walking into frame slowly',duration:4},
+    {id:'S03_P02',desc:'La mère rejoint le père',chars:['pere','mere'],decor:'Jardin extraterrestre',framing:'Plan moyen',action:'Arrivée de la mère',imgPrompt:'Cinematic medium shot, alien mother joining the father near the device, blue-violet and gold, 8K',animPrompt:'Mother stepping into frame',duration:4},
+    {id:'S03_P03',desc:'L\'enfant se glisse entre ses parents',chars:['pere','mere','enfant'],decor:'Jardin extraterrestre',framing:'Plan moyen',action:'Entrée de l\'enfant',imgPrompt:'Cinematic medium shot, alien child stepping between parents, curious expression, glowing device, blue-violet and gold, 8K',animPrompt:'Child stepping between parents',duration:4},
+    {id:'S03_P04',desc:'Plan large des trois devant l\'appareil',chars:['pere','mere','enfant'],decor:'Jardin extraterrestre',framing:'Plan large',action:'Pose contemplative',imgPrompt:'Cinematic wide shot, alien family of three before a glowing device showing Earth, blue-violet and gold, 8K',animPrompt:'Family standing still, device glowing',duration:4}
+  ]},
+  {id:'S04',title:'Observation des humains',panels:[
+    {id:'S04_P01',desc:'La sphère montre des silhouettes humaines',chars:[],decor:'Écran de la sphère',framing:'Insert',action:'Silhouettes qui bougent',imgPrompt:'Insert shot of an alien glass sphere showing a holographic miniature of human city life, tiny silhouettes moving, blue-violet and gold, 8K',animPrompt:'Human silhouettes moving inside the sphere',duration:4},
+    {id:'S04_P02',desc:'Réaction du père, sourcils froncés',chars:['pere'],decor:'Jardin extraterrestre',framing:'Gros plan visage',action:'Réaction silencieuse',imgPrompt:'Close-up of alien father face, subtle frown of curiosity, glowing device reflected in eyes, blue-violet and gold, 8K',animPrompt:'Subtle facial expression shift',duration:4},
+    {id:'S04_P03',desc:'La mère pose la main sur l\'épaule du père',chars:['pere','mere'],decor:'Jardin extraterrestre',framing:'Plan rapproché',action:'Geste de réconfort',imgPrompt:'Cinematic close-up, alien mother\'s hand on the father\'s shoulder, glowing sphere, blue-violet and gold, 8K',animPrompt:'Hand slowly settling on shoulder',duration:4},
+    {id:'S04_P04',desc:'L\'enfant pointe la sphère',chars:['enfant'],decor:'Jardin extraterrestre',framing:'Plan moyen',action:'Geste de l\'enfant',imgPrompt:'Cinematic medium shot, alien child pointing at the glowing sphere, blue-violet and gold, 8K',animPrompt:'Child extending arm to point',duration:4},
+    {id:'S04_P05',desc:'Échange de regards entre les trois',chars:['pere','mere','enfant'],decor:'Jardin extraterrestre',framing:'Plan serré',action:'Regards croisés',imgPrompt:'Cinematic tight shot of alien family of three exchanging silent looks, glowing device behind, 8K',animPrompt:'Subtle head turns, eyes meeting',duration:4}
+  ]}
 ];
 
-const PRESETS=[
- {n:'Sablier liquide',p:"Plan macro ultra-réaliste, objectif 100mm, d'un sablier en verre noir mat posé sur une surface en obsidienne polie. À l'intérieur, un liquide visqueux et lumineux composé de filaments cyan et or flotte en apesanteur. Une tige en bois brut descend lentement et perce la paroi du sablier. Le verre se fissure en fractales lumineuses, libérant une poussière d'étoiles qui tourbillonne. Éclairage volumétrique doux, contraste élevé, fond noir profond. Style ASMR macro, ultra-détaillé, cinématographique, 8K. Physique satisfaisante, mouvement lent et hypnotique."},
- {n:'Fraise en verre',p:"Plan macro ultra-réaliste, objectif 100mm, d'une fraise en verre transparent posée sur une surface en verre noir polie. Un couteau en argent descend lentement et tranche la fraise. Une fractale de lumière jaillit de l'intérieur. Les morceaux tombent au ralenti, révélant un cœur de verre liquide incandescent. Éclairage volumétrique doux, fond noir profond, reflets brillants. Style ASMR macro, 8K. Physique satisfaisante, mouvement lent."},
- {n:'Savon glacé',p:"Plan macro ultra-réaliste d'un savon artisanal aux couches pastel (rose, bleu, blanc) posé sur du marbre blanc. Texture glacée et translucide. Un couteau en céramique blanche coupe une fine tranche, lame glisse sans effort. Vapeur froide s'échappe. Éclairage froid venant de la gauche, fond blanc cassé. Style ASMR macro, 8K. Physique satisfaisante, coupe lisse."},
- {n:'Miel doré',p:"Plan macro ultra-réaliste d'une cuillère en argent plongeant dans un pot de miel doré et visqueux. Le miel coule lentement en formant un ruban brillant et translucide. La cuillère soulève une portion qui s'étire sans se rompre. Reflets ambrés dansent. Éclairage chaud latéral, fond noir profond. Style ASMR macro, 8K. Mouvement lent et hypnotique."},
- {n:'Glace cristal',p:"Plan macro ultra-réaliste d'un bloc de glace transparente posé sur une surface en ardoise noire. Un pic en métal descend lentement et fracture la glace. Fissures cristallines se propagent en fractales lumineuses. Éclats de glace tombent au ralenti en scintillant. Éclairage froid venant du haut, fond noir, reflets bleutés. Style ASMR macro, 8K."},
- {n:'Métal fondu',p:"Plan macro ultra-réaliste d'une pièce de métal argenté posée sur céramique noire. Un chalumeau invisible chauffe le métal jusqu'au rouge incandescent, puis le fait fondre lentement. Gouttes de métal liquide tombent au ralenti en brillant. Éclairage chaud orangé, fond noir, contraste élevé. Style ASMR macro, 8K."},
- {n:'Encre noire',p:"Plan macro ultra-réaliste d'une goutte d'encre noire tombant dans un verre d'eau claire. L'encre se disperse lentement en volutes hypnotiques qui tournent et se mélangent. Éclairage doux venant de l'arrière, fond blanc lumineux, contraste élevé. Style ASMR macro, 8K. Dispersion fluide et lente."},
- {n:'Caviar opale',p:"Plan macro ultra-réaliste d'une cuillère en argent vintage plongeant dans un caviar scintillant composé de minuscules sphères d'opale noire iridescente. Les sphères roulent les unes sur les autres. Certaines éclatent doucement en libérant une poussière d'or. Éclairage latéral chaud, fond noir velouté, reflets multicolores. Style ASMR macro, 8K."},
- {n:'Fleur de verre',p:"Plan macro ultra-réaliste d'une fleur entièrement en verre transparent posée sur une surface en miroir. Un pétale se détache lentement et tombe au ralenti en tournant sur lui-même. La lumière traverse le verre en créant des arcs-en-ciel. Éclairage volumétrique doux, fond noir, reflets prismatiques. Style ASMR macro, 8K."},
- {n:'Pierre précieuse',p:"Plan macro ultra-réaliste d'une pierre précieuse brute posée sur velours noir. Un burin en métal descend lentement et fend la pierre. Une lumière intense jaillit de l'intérieur, révélant des cristaux multicolores. Éclats brillent au ralenti. Éclairage froid directionnel, fond noir, contraste élevé. Style ASMR macro, 8K."},
- {n:'Sable cinétique',p:"Plan macro ultra-réaliste d'une main gantée de blanc tenant un couteau en métal et coupant un bloc de sable cinétique bleu turquoise. Le sable a une texture dense et lisse. Le couteau tranche en produisant une coupe parfaitement nette. Le bloc se sépare en deux. Éclairage doux diffus, fond gris clair. Style ASMR macro, 8K."}
-];
-
+/* ═════════════════════════════════════════════════════════════════════
+   UTILITAIRES
+   ═════════════════════════════════════════════════════════════════════ */
 const $=s=>document.querySelector(s);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const uid=()=>Math.random().toString(36).slice(2,9);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const san=t=>String(t==null?'':t).replace(/[‘’]/g,"'").replace(/[“”«»]/g,'"').replace(/[–—]/g,'-').replace(/…/g,'...').replace(/[\u00a0\u202f]/g,' ');
+const safeName=s=>String(s||'').toLowerCase().replace(/[^a-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'');
 
-let db,P=null,Q=null,page=0,F=1,TASK=null;
-const KEYS={list:[],plan:'free'};
-const AR=()=>(P?P.ratio:'9:16').replace(':','/');
+const ERR_FR={400:'Requête refusée (paramètres invalides).',401:'Clé API invalide ou expirée.',402:'Compte sans crédit suffisant.',403:'Accès refusé.',404:'Ressource introuvable.',408:'Délai dépassé.',429:'Trop de requêtes : attends une minute.',500:'Erreur serveur Agnes.',502:'Passerelle Agnes indisponible.',503:'Serveur Agnes saturé.',504:'Délai serveur dépassé.'};
+const frErr=(code,msg)=>(ERR_FR[code]||('Erreur HTTP '+code))+(msg?(' — '+String(msg).slice(0,100)):'');
+
+let db=null,P=null,page=0,F=1,saveTimer=null,savePending=false;
+const KEYS={list:[],plan:'free',revealed:false};
+const AR=()=>((P&&P.ratio)||'9:16').replace(':','/');
 const ref=i=>i&&(i.d||i.u);
 const mkKey=k=>({k,img:0,vid:0,cool:0,bad:0,off:false});
-
-let VID_MODE=null;
 let keyIdx=0;
 
+/* Locks */
+const LOCKS=new Set();
+function lock(id){if(LOCKS.has(id))return false;LOCKS.add(id);return true;}
+function unlock(id){LOCKS.delete(id);}
+function isLocked(id){return LOCKS.has(id);}
+
+/* Abort controllers */
+const ABORTS=new Map();
+function registerAbort(id){const c=new AbortController();ABORTS.set(id,c);return c;}
+function clearAbort(id){ABORTS.delete(id);}
+function abortTask(id){const c=ABORTS.get(id);if(c&&!c.signal.aborted)c.abort();}
+function isAborted(id){const c=ABORTS.get(id);return c&&c.signal.aborted;}
+
 /* ═════════════════════════════════════════════════════════════════════
-   CONSTRUCTION DU PROMPT AVEC SCÈNE GLOBALE + SÉQUENCE
+   STOCKAGE — IndexedDB + fallback localStorage + vérification quota
    ═════════════════════════════════════════════════════════════════════ */
-function vp(c){
-  const idx=P.clips.indexOf(c);
-  const total=P.clips.length;
-  const angle=CAM_ANGLES[idx%CAM_ANGLES.length];
-  let prompt='Cinematic macro shot. ';
-  if(P.globalScene&&P.globalScene.trim())prompt+=P.globalScene.trim()+'. ';
-  prompt+=c.prompt+'. ';
-  if(P.continuity&&total>1){
-    prompt+='This is clip '+(idx+1)+' of '+total+'. '+angle+'. ';
-    prompt+='Keep the exact same scene, same lighting, same background, same materials, same color palette as the other clips. Smooth continuation. ';
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('scifi_studio_v4',1);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id'});if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'})}})}
+const tx=(s,m,f)=>new Promise((res,rej)=>{try{const r=f(db.transaction(s,m).objectStore(s));r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});
+let mode='idb';
+const mem={projects:{},config:{}};
+const lsK=(s,k)=>'scifi4_'+s+'_'+k;
+function fall(){if(mode==='idb'){mode='ls';log('wr','IndexedDB indisponible → localStorage (limité)');}}
+
+async function dbGet(s,k){
+  if(db&&mode==='idb'){try{return await tx(s,'readonly',o=>o.get(k))}catch(e){fall()}}
+  try{const v=localStorage.getItem(lsK(s,k));if(v!=null)return JSON.parse(v)}catch(e){}
+  return mem[s][k];
+}
+async function dbPut(s,v){
+  const k=v.key||v.id;
+  mem[s][k]=v;
+  if(db&&mode==='idb'){
+    try{return await tx(s,'readwrite',o=>o.put(v))}
+    catch(e){
+      // Vérifier quota
+      try{
+        const est=await navigator.storage.estimate();
+        const remaining=est.quota-est.usage;
+        log('er','IndexedDB : stockage plein (reste ~'+(remaining/1024/1024).toFixed(1)+' Mo)');
+        toast('⚠️ Stockage saturé — exporte ton projet');
+      }catch(_){log('er','IndexedDB en erreur : '+e.message)}
+      fall();
+    }
   }
-  prompt+='Realistic ambient sound effects only, no music, no subtitles, no on-screen text.';
-  return san(prompt);
+  try{
+    localStorage.setItem(lsK(s,k),JSON.stringify(v));
+    return true;
+  }catch(e){
+    log('er','localStorage plein — sauvegarde incomplète');
+    toast('⚠️ Sauvegarde impossible — exporte maintenant');
+    return false;
+  }
+}
+async function dbDel(s,k){delete mem[s][k];if(db&&mode==='idb'){try{return await tx(s,'readwrite',o=>o.delete(k))}catch(e){fall()}}try{localStorage.removeItem(lsK(s,k))}catch(e){}}
+async function dbAll(s){
+  if(db&&mode==='idb'){try{return await tx(s,'readonly',o=>o.getAll())}catch(e){fall()}}
+  const o=Object.assign({},mem[s]);
+  try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n&&n.startsWith(lsK(s,''))){const v=JSON.parse(localStorage.getItem(n));o[v.key||v.id]=v}}}catch(e){}
+  return Object.values(o);
 }
 
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('asmr_loop_v1',1);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('clips'))d.createObjectStore('clips',{keyPath:'id'});if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'})}})}
-const tx=(s,m,f)=>new Promise((res,rej)=>{try{const r=f(db.transaction(s,m).objectStore(s));r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});
-let mode='idb';const mem={clips:{},config:{}},lsK=(s,k)=>'al1_'+s+'_'+k;
-function fall(e){if(mode=='idb'){mode='ls';log('wr','IndexedDB indisponible → stockage de secours')}}
-async function dbGet(s,k){if(db&&mode=='idb'){try{return await tx(s,'readonly',o=>o.get(k))}catch(e){fall(e)}}try{const v=localStorage.getItem(lsK(s,k));if(v!=null)return JSON.parse(v)}catch(e){}return mem[s][k]}
-async function dbPut(s,v){const k=v.key||v.id;mem[s][k]=v;if(db&&mode=='idb'){try{return await tx(s,'readwrite',o=>o.put(v))}catch(e){fall(e)}}try{localStorage.setItem(lsK(s,k),JSON.stringify(v))}catch(e){}}
-async function dbDel(s,k){delete mem[s][k];if(db&&mode=='idb'){try{return await tx(s,'readwrite',o=>o.delete(k))}catch(e){fall(e)}}try{localStorage.removeItem(lsK(s,k))}catch(e){}}
-async function dbAll(s){if(db&&mode=='idb'){try{return await tx(s,'readonly',o=>o.getAll())}catch(e){fall(e)}}const o=Object.assign({},mem[s]);try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n.startsWith(lsK(s,''))){const v=JSON.parse(localStorage.getItem(n));o[v.key||v.id]=v}}}catch(e){}return Object.values(o)}
-let svT;function save(){if(!P)return;clearTimeout(svT);svT=setTimeout(()=>{P.upd=Date.now();dbPut('clips',P).catch(e=>log('er','sauvegarde : '+e.message))},350)}
+/* Sauvegarde débouncée + flush */
+function save(){
+  if(!P)return;
+  savePending=true;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    P.upd=Date.now();
+    savePending=false;
+    await dbPut('projects',P).catch(e=>log('er','sauvegarde : '+e.message));
+  },400);
+}
+async function flushSave(){
+  if(!savePending||!P)return;
+  clearTimeout(saveTimer);
+  savePending=false;
+  P.upd=Date.now();
+  await dbPut('projects',P).catch(e=>log('er','sauvegarde immédiate : '+e.message));
+}
 
+/* ═════════════════════════════════════════════════════════════════════
+   LOG + TOAST
+   ═════════════════════════════════════════════════════════════════════ */
 function log(l,m){const d=document.createElement('div');d.className='lg '+l;d.textContent=new Date().toLocaleTimeString('fr-FR')+'  '+m;const b=$('#lb');if(!b)return;b.appendChild(d);while(b.children.length>500)b.firstChild.remove();b.scrollTop=b.scrollHeight}
 function toast(m){const d=document.createElement('div');d.textContent=m;$('#toast').appendChild(d);setTimeout(()=>d.remove(),4200)}
 
+/* ═════════════════════════════════════════════════════════════════════
+   RATE LIMITING — séparation img / vid
+   ═════════════════════════════════════════════════════════════════════ */
 async function slot(kind){
+  // kind ∈ {'img','vid'}
   for(;;){
-    if(TASK&&TASK.stop)throw new Error('stop');
     let live=KEYS.list.filter(o=>!o.off);
-    if(!live.length&&KEYS.list.length){log('wr','toutes clés off → réactivation automatique');KEYS.list.forEach(o=>{o.off=false;o.bad=0;o.cool=0});live=KEYS.list}
+    if(!live.length&&KEYS.list.length){KEYS.list.forEach(o=>{o.off=false;o.bad=0;o.cool=0});live=KEYS.list}
     if(!live.length)throw Object.assign(new Error('Aucune clé active'),{fatal:true});
-    const iv=60000/RPM[KEYS.plan][kind]*1.15*F,now=Date.now();
+    const rpm=RPM[KEYS.plan][kind]||10;
+    const iv=60000/rpm*1.15*F,now=Date.now();
     let best=null,bt=1e18;
     for(const o of live){const t=Math.max(o[kind]||0,o.cool||0,now);if(t<bt){bt=t;best=o}}
     if(bt>now){await sleep(Math.min(bt-now,400));continue}
@@ -160,24 +250,36 @@ async function slot(kind){
     return best;
   }
 }
-async function call(kind,url,body,tries){
-  let err;
-  for(let a=0;a<tries;a++){
+
+/* Appel API avec slot image ou video */
+async function callApi(kind,url,body,signal){
+  let lastErr=null;
+  for(let a=0;a<3;a++){
     const o=await slot(kind);
     try{
-      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)});
+      const opt={method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+o.k},body:JSON.stringify(body)};
+      if(signal)opt.signal=signal;
+      const r=await fetch(url,opt);
       if(r.ok){o.bad=0;F=Math.max(1,F*0.97);return r}
-      const t=(await r.text()).slice(0,200);log('er',kind+' HTTP '+r.status+' '+t);
-      if(r.status==429){o.cool=Date.now()+(parseInt(r.headers.get('Retry-After'))||25)*1000;F=Math.min(4,F*1.5);err=new Error('429');continue}
-      if(r.status==401){if(++o.bad>=2){o.off=true}err=new Error('HTTP 401');continue}
-      if(r.status==402||r.status==403){o.cool=Date.now()+120000;err=new Error('HTTP '+r.status);continue}
-      if(r.status>=500||r.status==408){err=new Error('HTTP '+r.status);await sleep(2000*Math.pow(2,a));continue}
-      throw Object.assign(new Error('HTTP '+r.status+' '+t),{fatal:true});
-    }catch(e){if(e.fatal||e.message=='stop')throw e;err=e;await sleep(1500*(a+1))}
+      const t=await r.text().catch(()=>'');
+      log('er','HTTP '+r.status+' '+(t||'').slice(0,180));
+      if(r.status===429){o.cool=Date.now()+(parseInt(r.headers.get('Retry-After'))||30)*1000;F=Math.min(4,F*1.5);lastErr=new Error(frErr(429));continue}
+      if(r.status===401){o.bad++;if(o.bad>=2)o.off=true;lastErr=new Error(frErr(401));continue}
+      if(r.status>=500){lastErr=new Error(frErr(r.status));await sleep(2500*Math.pow(2,a));continue}
+      throw Object.assign(new Error(frErr(r.status,t)),{fatal:true});
+    }catch(e){
+      if(e.name==='AbortError')throw e;
+      if(e.fatal)throw e;
+      lastErr=e;
+      await sleep(1500*(a+1));
+    }
   }
-  throw err||new Error('échec');
+  throw lastErr||new Error('Échec réseau');
 }
 
+/* ═════════════════════════════════════════════════════════════════════
+   IMAGE / DATA URL
+   ═════════════════════════════════════════════════════════════════════ */
 function toData(u){
   return new Promise(resolve=>{
     if(!u)return resolve(null);
@@ -189,18 +291,6 @@ function toData(u){
     }).catch(()=>resolve(null));
   });
 }
-function mkImg(prompt,refUris,ratio){
-  const body={model:IMG,prompt:san(prompt),n:1,size:'1K',ratio:ratio||P.ratio,extra_body:{response_format:'url'}};
-  if(refUris&&refUris.length)body.extra_body.image=refUris.filter(Boolean).slice(0,4);
-  return call('img',PX(AGNES_API+'/images/generations'),body,3).then(r=>r.json()).then(d=>{
-    const it=d.data&&d.data[0];
-    const u=it&&(it.url||(it.b64_json&&'data:image/png;base64,'+it.b64_json));
-    if(!u)throw new Error('pas d\'image reçue');
-    const img={u:u,d:u.indexOf('data:')===0?u:null};
-    if(!img.d){img._conv=toData(u).then(dd=>{img.d=dd||u;return img.d}).catch(()=>{img.d=u;return img.d})}
-    return img;
-  });
-}
 function ensureRef(img){
   if(!img)return Promise.resolve(null);
   if(img.d)return Promise.resolve(img.d);
@@ -208,355 +298,666 @@ function ensureRef(img){
   img._conv=toData(img.u).then(dd=>{img.d=dd||img.u;return img.d}).catch(()=>{img.d=img.u;return img.d});
   return img._conv;
 }
+async function mkImg(prompt,refUris,ratio,signal){
+  const body={model:IMG,prompt:san(prompt),n:1,size:'1K',ratio:ratio||(P?P.ratio:'9:16'),extra_body:{response_format:'url'}};
+  if(refUris&&refUris.length)body.extra_body.image=refUris.filter(Boolean).slice(0,MAX_REF);
+  const r=await callApi('img',PX(AGNES_API+'/images/generations'),body,signal);
+  const d=await r.json();
+  const it=d.data&&d.data[0];
+  const u=it&&(it.url||(it.b64_json&&'data:image/png;base64,'+it.b64_json));
+  if(!u)throw new Error('Aucune image reçue de l\'API');
+  const img={u:u,d:u.indexOf('data:')===0?u:null};
+  if(!img.d)img._conv=toData(u).then(dd=>{img.d=dd||u;return img.d}).catch(()=>{img.d=u;return img.d});
+  return img;
+}
 
 /* ═════════════════════════════════════════════════════════════════════
-   MODÈLE DE PROJET — ajouts : globalScene, continuity, duration
+   MODÈLE
    ═════════════════════════════════════════════════════════════════════ */
-const newP=()=>({
-  id:uid()+uid(),created:Date.now(),upd:Date.now(),
-  page:0,last:0,max:0,ratio:'9:16',
-  clips:[],nclips:3,
-  globalScene:'',
-  continuity:true,
-  duration:10,
-  sub:{},q:{step:0,next:0,st:'idle',on:false}
-});
-function setP(p){
-  P=p;P.clips=P.clips||[];P.sub=P.sub||{};
-  if(typeof P.globalScene!=='string')P.globalScene='';
-  if(typeof P.continuity!=='boolean')P.continuity=true;
-  if(typeof P.duration!=='number')P.duration=10;
-  Q=P.q=P.q||{step:0,next:0,st:'idle',on:false};
-  P.clips.forEach(c=>{c.busy=false;if(c.vst=='run'&&!c.task)c.vst='wait'});
-  dbPut('config',{key:'last',v:P.id});
-}
-const anyBusy=()=>P.clips.some(c=>c.busy);
-function find(id){for(let i=0;i<P.clips.length;i++)if(P.clips[i].id==id)return{t:'c',o:P.clips[i],i:i};return null}
-async function genImg(id){
-  const f=find(id);if(!f||f.o.busy)return;
-  const o=f.o;o.busy=true;o.err='';refresh(id);
-  try{o.img=await mkImg(o.prompt,null,P.ratio);await ensureRef(o.img)}
-  catch(e){if(e.message!='stop'){o.err='Échec : '+String(e.message).slice(0,80);log('er','image : '+e.message)}}
-  o.busy=false;refresh(id);save();
+function newChar(def){return {id:def.id,name:def.name,desc:def.desc,views:VIEW_DEFS.map(v=>({id:v.id,label:v.label,en:v.en,prompt:'',img:null,busy:false,err:''})),principalViewId:'face'}}
+function newPanel(def){return {id:def.id,desc:def.desc||'',chars:Array.isArray(def.chars)?def.chars:[],decor:def.decor||'',framing:def.framing||'',action:def.action||'',imgPrompt:def.imgPrompt||def.desc||'',animPrompt:def.animPrompt||def.desc||'',duration:typeof def.duration==='number'?def.duration:4,img:null,video:null,vst:'idle',busy:false,err:'',task:null,seen:false}}
+function newBoard(def){return {id:def.id,title:def.title||'Scène',panels:Array.isArray(def.panels)?def.panels.map(newPanel):[]}}
+function newP(){return {id:uid()+uid(),created:Date.now(),upd:Date.now(),title:'Famille extraterrestre · Observation de la Terre',page:0,last:0,max:0,ratio:'9:16',duration:4,characters:CHAR_DEFAULTS.map(newChar),boards:BOARDS_DEFAULTS.map(newBoard),sub:{}}}
+
+/* Normaliser un projet importé */
+function normalizeProject(p){
+  const out=Object.assign(newP(),p||{});
+  out.id=out.id||uid()+uid();
+  out.created=out.created||Date.now();
+  out.upd=Date.now();
+  if(!Array.isArray(out.characters)||!out.characters.length)out.characters=CHAR_DEFAULTS.map(newChar);
+  out.characters=out.characters.map(c=>{
+    const base=CHAR_DEFAULTS.find(x=>x.id===c.id)||{id:c.id||uid(),name:c.name||'Personnage',desc:c.desc||''};
+    const views=VIEW_DEFS.map(def=>{
+      const found=Array.isArray(c.views)?c.views.find(v=>v.id===def.id):null;
+      return {id:def.id,label:def.label,en:def.en,prompt:(found&&found.prompt)||'',img:(found&&found.img)||null,busy:false,err:''};
+    });
+    return {id:base.id,name:base.name,desc:c.desc||base.desc,views,principalViewId:c.principalViewId||'face'};
+  });
+  if(!Array.isArray(out.boards))out.boards=[];
+  out.boards=out.boards.map(b=>newBoard(b));
+  if(!out.boards.length)out.boards=BOARDS_DEFAULTS.map(newBoard);
+  return out;
 }
 
+function setP(p){
+  P=normalizeProject(p);
+  dbPut('config',{key:'last',v:P.id});
+}
+const findChar=id=>P.characters.find(c=>c.id===id);
+const findView=(cid,vid)=>{const c=findChar(cid);return c?c.views.find(v=>v.id===vid):null};
+const findPanel=pid=>{for(const b of P.boards){const p=b.panels.find(x=>x.id===pid);if(p)return{board:b,panel:p}}return null};
+
+/* ═════════════════════════════════════════════════════════════════════
+   PROMPTS + NOMS DE FICHIERS
+   ═════════════════════════════════════════════════════════════════════ */
+function charViewPrompt(char,view){
+  if(view.prompt&&view.prompt.trim())return view.prompt;
+  return `${char.desc}. ${view.en}. ${SCENE_STYLE}`;
+}
+function panelImgPrompt(panel){
+  const base=panel.imgPrompt&&panel.imgPrompt.trim()?panel.imgPrompt:panel.desc;
+  return `${base}. ${SCENE_STYLE}`;
+}
+function charFilename(cid,vid){return safeName(cid)+'_'+safeName(vid)+'.png'}
+function panelFilename(pid){const m=pid.match(/^S(\d+)_P(\d+)$/);if(m)return 'scene_'+m[1]+'_case_'+m[2]+'.png';return safeName(pid)+'.png'}
+
+/* ═════════════════════════════════════════════════════════════════════
+   GÉNÉRATION PERSONNAGE
+   ═════════════════════════════════════════════════════════════════════ */
+async function genCharView(cid,vid){
+  const key=cid+'/'+vid;
+  if(!lock(key))return toast('Génération déjà en cours pour cette vue');
+  const c=findChar(cid);
+  const v=c&&c.views.find(x=>x.id===vid);
+  if(!c||!v){unlock(key);return}
+  v.busy=true;v.err='';refresh();
+  const ctrl=registerAbort(key);
+  try{
+    const refs=[];
+    const pv=c.views.find(x=>x.id===(c.principalViewId||'face'));
+    if(pv&&pv.img&&pv.id!==v.id)refs.push(await ensureRef(pv.img));
+    log('in','Vue '+cid+'/'+vid+' · refs='+refs.length);
+    v.img=await mkImg(charViewPrompt(c,v),refs,'1:1',ctrl.signal);
+    log('ok','Vue '+cid+'/'+vid+' générée');
+    toast('✓ '+cid+' / '+vid);
+  }catch(e){
+    if(e.name==='AbortError'){v.err='Annulé';log('wr','vue '+cid+'/'+vid+' annulée')}
+    else{v.err=e.message||'Échec';log('er','vue '+cid+'/'+vid+' : '+(e.message||e))}
+  }finally{
+    clearAbort(key);unlock(key);v.busy=false;
+    await flushSave();refresh();
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   GÉNÉRATION PANEL
+   ═════════════════════════════════════════════════════════════════════ */
+async function genPanelImg(pid){
+  if(!lock(pid))return toast('Génération déjà en cours pour cette case');
+  const f=findPanel(pid);
+  if(!f){unlock(pid);return}
+  const p=f.panel;p.busy=true;p.err='';refresh();
+  const ctrl=registerAbort(pid);
+  try{
+    const refs=[];
+    const charList=(p.chars||[]).slice(0,MAX_REF);
+    for(const cid of charList){
+      const c=findChar(cid);if(!c)continue;
+      const pv=c.views.find(v=>v.id===(c.principalViewId||'face'));
+      if(pv&&pv.img)refs.push(await ensureRef(pv.img));
+    }
+    if((p.chars||[]).length>MAX_REF)log('wr','Panel '+pid+' : '+(p.chars.length)+' pers, seules '+MAX_REF+' refs envoyées');
+    log('in','Panel '+pid+' · refs='+refs.length);
+    p.img=await mkImg(panelImgPrompt(p),refs,P.ratio,ctrl.signal);
+    log('ok','Panel '+pid+' généré');
+    toast('✓ '+pid);
+  }catch(e){
+    if(e.name==='AbortError'){p.err='Annulé';log('wr','panel '+pid+' annulé')}
+    else{p.err=e.message||'Échec';log('er','panel '+pid+' : '+(e.message||e))}
+  }finally{
+    clearAbort(pid);unlock(pid);p.busy=false;
+    await flushSave();refresh();
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   VIDÉO — désactivée avec message honnête
+   ═════════════════════════════════════════════════════════════════════ */
+function launchVideo(pid){
+  toast('🎬 Service vidéo Agnes saturé — non réactivé');
+  log('wr','Vidéo désactivée : aucune confirmation que le service est opérationnel.');
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   TÉLÉCHARGEMENTS — data: ET http(s):
+   ═════════════════════════════════════════════════════════════════════ */
+async function fetchAsDataUrl(url){
+  if(!url)return null;
+  if(url.indexOf('data:')===0)return url;
+  // Essai direct
+  try{
+    const r=await fetch(url,{mode:'cors'});
+    if(r.ok){
+      const b=await r.blob();
+      return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(b)});
+    }
+  }catch(e){/* CORS probablement */}
+  // Fallback via proxy (pour les URLs Agnes)
+  try{
+    const r=await fetch(PX(url));
+    if(r.ok){
+      const b=await r.blob();
+      return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(b)});
+    }
+  }catch(e){/* échec */}
+  return null;
+}
+function triggerDownload(dataUrl,filename){
+  try{
+    const a=document.createElement('a');
+    a.href=dataUrl;a.download=filename;
+    document.body.appendChild(a);a.click();a.remove();
+    return true;
+  }catch(e){log('er','Téléchargement échoué : '+e.message);return false}
+}
+async function dlImage(img,filename){
+  if(!img)return toast('Aucune image');
+  const url=img.d||img.u;
+  if(!url)return toast('Image sans données');
+  const dataUrl=url.indexOf('data:')===0?url:await fetchAsDataUrl(url);
+  if(!dataUrl)return toast('❌ Téléchargement impossible (CORS ou lien expiré)');
+  if(triggerDownload(dataUrl,filename))toast('⬇ '+filename);
+}
+async function dlZip(files,zipName){
+  if(typeof JSZip==='undefined')return toast('JSZip non chargé — vérifie ta connexion');
+  if(!files.length)return toast('Aucun fichier à zipper');
+  toast('⏳ Préparation du ZIP ('+files.length+' fichier(s))…');
+  const zip=new JSZip();
+  let added=0,failed=0;
+  for(const f of files){
+    let dataUrl=f.dataUrl;
+    if(!dataUrl)dataUrl=await fetchAsDataUrl(f.url);
+    if(!dataUrl){failed++;log('er','Fichier ignoré : '+f.name);continue}
+    const b64=dataUrl.split(',')[1];
+    if(b64){zip.file(f.name,b64,{base64:true});added++}
+    else failed++;
+  }
+  if(!added)return toast('❌ Aucun fichier téléchargeable (CORS)');
+  try{
+    const blob=await zip.generateAsync({type:'blob'});
+    const url=URL.createObjectURL(blob);
+    triggerDownload(url,zipName);
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
+    toast('⬇ '+zipName+' ('+added+' fichier(s)'+(failed?', '+failed+' échec(s)':'')+')');
+  }catch(e){toast('Erreur ZIP : '+e.message);log('er','ZIP : '+e.message)}
+}
+async function charFiles(cid){
+  const c=findChar(cid);if(!c)return[];
+  const out=[];
+  for(const v of c.views){
+    if(v.img)out.push({name:charFilename(cid,v.id),dataUrl:v.img.d,url:v.img.u});
+  }
+  return out;
+}
+async function boardFiles(bid){
+  const b=P.boards.find(x=>x.id===bid);if(!b)return[];
+  const out=[];
+  for(const p of b.panels){
+    if(p.img)out.push({name:panelFilename(p.id),dataUrl:p.img.d,url:p.img.u});
+  }
+  return out;
+}
+async function allFiles(){
+  const out=[];
+  for(const c of P.characters)out.push(...await charFiles(c.id));
+  for(const b of P.boards)out.push(...await boardFiles(b.id));
+  return out;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   EXPORT / IMPORT JSON
+   ═════════════════════════════════════════════════════════════════════ */
+async function exportJSON(embed){
+  const clean=JSON.parse(JSON.stringify(P));
+  clean.task=null;
+  for(const c of clean.characters||[])for(const v of c.views||[]){
+    if(v.img){
+      if(embed){v.img={u:v.img.u,d:v.img.d||await fetchAsDataUrl(v.img.u)||v.img.u}}
+      else{v.img={u:v.img.u,note:'lien temporaire (non persisté)'}}
+    }
+  }
+  for(const b of clean.boards||[])for(const p of b.panels||[]){
+    if(p.img){
+      if(embed){p.img={u:p.img.u,d:p.img.d||await fetchAsDataUrl(p.img.u)||p.img.u}}
+      else{p.img={u:p.img.u,note:'lien temporaire (non persisté)'}}
+    }
+    if(p.video&&!embed)p.video=null;
+    p.task=null;
+  }
+  const size=(JSON.stringify(clean).length/1024/1024).toFixed(1);
+  const blob=new Blob([JSON.stringify(clean,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  triggerDownload(url,'projet_scifi_'+(embed?'complet_':'meta_')+P.id+'.json');
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  log('in','Export JSON ~'+size+' Mo');
+  toast('JSON exporté ('+size+' Mo)');
+}
+function importJSON(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const data=JSON.parse(fr.result);
+      if(!data||typeof data!=='object')throw new Error('Contenu invalide');
+      if(!data.characters&&!data.boards)throw new Error('Ni characters ni boards');
+      const normalized=normalizeProject(data);
+      setP(normalized);
+      page=1;render();
+      log('ok','Projet importé : '+normalized.id);
+      toast('✓ Projet importé');
+    }catch(e){
+      log('er','Import échoué : '+e.message);
+      toast('❌ Import échoué : '+e.message);
+    }
+  };
+  fr.onerror=()=>toast('❌ Lecture impossible');
+  fr.readAsText(file);
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   MODAL
+   ═════════════════════════════════════════════════════════════════════ */
+function confirmModal(title,rows,onConfirm,confirmLabel){
+  const inner=$('#modalInner');
+  inner.innerHTML='<h3>'+esc(title)+'</h3>'+
+    rows.map(r=>'<div class="kv"><span>'+esc(r[0])+'</span><b>'+esc(r[1])+'</b></div>').join('')+
+    '<div class="guide gd" style="margin-top:14px"><div>⚠️ Aucune génération automatique. Confirme pour lancer.</div></div>'+
+    '<div class="rw" style="justify-content:flex-end">'+btn('modal-cancel','Annuler','ghost')+' '+btn('modal-ok',confirmLabel||'Confirmer','big')+'</div>';
+  $('#modal').classList.add('on');
+  const close=()=>$('#modal').classList.remove('on');
+  inner.querySelector('[data-a="modal-cancel"]').onclick=close;
+  inner.querySelector('[data-a="modal-ok"]').onclick=()=>{close();onConfirm()};
+}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')$('#modal').classList.remove('on')});
+
+/* ═════════════════════════════════════════════════════════════════════
+   UI HELPERS
+   ═════════════════════════════════════════════════════════════════════ */
 const guide=(h,c)=>'<div class="guide '+(c||'')+'"><div>'+h+'</div></div>';
 const hd=(n,t)=>'<div class="lab">ÉTAPE '+n+' / 4</div><h2>'+t+'</h2>';
 const btn=(a,l,c,x)=>'<button class="'+(c||'')+'" data-a="'+a+'" '+(x||'')+'>'+l+'</button>';
 const foot=(prev,next)=>'<div class="ft">'+(prev||'<span></span>')+(next||'')+'</div>';
-const nextBtn=(a,l,x)=>'<button class="big" id="nx" data-a="'+a+'" data-lbl="'+esc(l)+'" '+(x||'')+'>'+l+' →</button>';
-function syncNext(){const b=$('#nx');if(!b)return;const bz=anyBusy();b.disabled=bz||b.dataset.off=='1';b.textContent=bz?'Images en cours…':b.dataset.lbl+' →'}
-const imBox=(o,r)=>'<div class="im" style="aspect-ratio:'+(r||AR())+'">'+(o.img?'<img src="'+esc(ref(o.img))+'" alt="">':'<span>'+(o.busy?'création…':'pas d\'image')+'</span>')+(o.busy?'<i class="sp"></i>':'')+'</div>';
-const clipCard=(c,i)=>{
-  const total=P.clips.length;
-  const angle=P.continuity&&total>1?CAM_ANGLES[i%CAM_ANGLES.length]:'';
-  return '<div class="cd" id="c-'+c.id+'"><div class="lab">Clip '+(i+1)+(total>1?' / '+total:'')+'</div>'+imBox(c)+
-  '<textarea data-f="prompt" data-id="'+c.id+'" rows="5" '+(c.busy?'disabled':'')+'>'+esc(c.prompt)+'</textarea>'+
-  (angle?'<div class="camlab">🎬 Angle auto : '+esc(angle)+'</div>':'')+
-  '<div class="rw">'+btn('genimg','↻ Image','sm','data-id="'+c.id+'" '+(c.busy?'disabled':''))+
-  '<label class="sm btn" style="cursor:pointer">⬆ Photo<input type="file" accept="image/*" hidden data-up="'+c.id+'"></label>'+
-  btn('delclip','🗑','sm','data-id="'+c.id+'" '+(c.busy?'disabled':''))+'</div>'+
-  (c.err?'<div class="lab" style="color:var(--er);margin-top:4px">'+esc(c.err)+'</div>':'')+'</div>';
-};
-const tile=(c,i)=>'<div class="tl '+(c.vst||'wait')+'" id="t-'+c.id+'"><div class="th" style="aspect-ratio:'+AR()+'">'+
-  (c.video?'<video src="'+esc(c.video)+'" controls playsinline preload="metadata" data-id="'+c.id+'"></video>':c.img?'<img src="'+esc(ref(c.img))+'" alt="">':'')+
-  '<b class="tg">'+(i+1)+'</b></div><div class="tx">'+esc(c.prompt.slice(0,60))+'…</div></div>';
-function refresh(id){
-  const f=find(id);if(!f)return;
-  const set=(p,h)=>{const a=document.getElementById(p+id);if(a){const t=document.createElement('div');t.innerHTML=h;a.replaceWith(t.firstElementChild)}};
-  if(f.t=='c')set('c-',clipCard(f.o,f.i));
-  if(page==3){stats();const tl=document.getElementById('t-'+id);if(tl){const t=document.createElement('div');t.innerHTML=tile(f.o,f.i+1);tl.replaceWith(t.firstElementChild)}}
-  syncNext();
-}
+const nextBtn=(a,l,x)=>'<button class="big" data-a="'+a+'" '+(x||'')+'>'+l+' →</button>';
+const imBox=(o,r)=>'<div class="im" style="aspect-ratio:'+(r||AR())+'">'+(o&&o.img?'<img src="'+esc(ref(o.img))+'" alt="" loading="lazy">':'<span>'+(o&&o.busy?'création…':'pas d\'image')+'</span>')+(o&&o.busy?'<i class="sp"></i>':'')+'</div>';
 
-function fd(t){const it={t:t,s:'run',at:Date.now()};TASK.items.push(it);paintFeed();return it}
-function fdDone(it,t){it.s='ok';if(t)it.t=t;paintFeed()}
-function paintFeed(){const e=$('#feed');if(!e||!TASK)return;const n=Date.now();e.innerHTML=TASK.items.map(i=>'<div class="fi '+i.s+'"><span class="ic">'+(i.s=='ok'?'✓':i.s=='er'?'✕':'<i class="sp2"></i>')+'</span><span>'+esc(i.t)+'</span>'+(i.s=='run'?'<em>'+Math.round((n-i.at)/1000)+' s</em>':'')+'</div>').join('')}
-function setPg(d,t){if(!TASK)return;TASK.pg=[d,t];pgb()}
-function pgb(){const b=$('#pgb');if(b&&TASK&&TASK.pg)b.style.width=Math.round(TASK.pg[0]/Math.max(1,TASK.pg[1])*100)+'%'}
-const chk=()=>{if(TASK&&TASK.stop)throw new Error('stop')};
-function workView(){const T=TASK;return '<div class="hero"><div class="lab">ÉTAPE '+(T.step+1)+' / 4 · EN COURS</div><h2>'+esc(T.title)+'</h2>'+(T.err?'<div class="guide er"><b>Un problème est survenu :</b> '+esc(T.err)+'<div class="rw" style="margin-top:8px">'+btn('retrytask','Réessayer','big')+btn('canceltask','← Revenir')+'</div></div>':'<div class="guide wt"><i class="sp2"></i><div><b>L\'IA travaille.</b> Ne ferme pas cette page.<div class="lab">Temps écoulé : <span id="el">0 s</span></div></div></div>')+'<div class="bar"><i id="pgb"></i></div><div id="feed" class="feed"></div>'+(T.err?'':'<div class="ft"><span></span>'+btn('stoptask','■ Arrêter')+'</div>')+'</div>'}
-async function task(step,title,fn,after){
-  if(TASK)return;
-  TASK={step:step,title:title,fn:fn,after:after,items:[],start:Date.now(),stop:false,err:null,pg:null};
-  page=step;render();
-  try{await fn();chk()}
-  catch(e){const T=TASK;if(e.message=='stop'){TASK=null;toast('Arrêté');render();return}T.items.forEach(i=>{if(i.s=='run')i.s='er'});T.err=e.message;log('er',title+' : '+e.message);render();paintFeed();return}
-  TASK=null;after();
+function charViewCard(cid,view){
+  const c=findChar(cid);if(!c)return'';
+  const isP=c.principalViewId===view.id;
+  const has=!!view.img;
+  const busy=view.busy;
+  const lockKey=cid+'/'+view.id;
+  return '<div class="cd'+(isP?' principal':'')+'" id="v-'+cid+'-'+view.id+'">'+
+    '<div class="lab">'+esc(view.label)+(isP?' <span class="badge gold">★ PRINCIPALE</span>':'')+(has?' <span class="badge ok">✓</span>':'')+(busy?' <span class="badge warn">en cours</span>':'')+'</div>'+
+    imBox(view,'1:1')+
+    '<textarea data-charPrompt="'+cid+'/'+view.id+'" rows="2" placeholder="Prompt spécifique (optionnel)" '+(busy?'disabled':'')+'>'+esc(view.prompt||'')+'</textarea>'+
+    '<div class="rw">'+
+      btn('gencharview','↻ Image','sm','data-cid="'+cid+'" data-vid="'+view.id+'" '+(busy?'disabled':''))+
+      (busy?btn('abort','■','sm ghost','data-key="'+lockKey+'"'):'')+
+      btn('dlcharview','⬇','sm ghost','data-cid="'+cid+'" data-vid="'+view.id+'" '+(has?'':'disabled'))+
+      (isP?'':'<button class="sm ghost" data-a="setprincipal" data-cid="'+cid+'" data-vid="'+view.id+'" '+(busy?'disabled':'')+'>★</button>')+
+      '<label class="sm btn ghost" style="cursor:pointer">⬆<input type="file" accept="image/*" hidden data-upview="'+cid+'/'+view.id+'"></label>'+
+    '</div>'+
+    (view.err?'<div class="lab" style="color:var(--er);margin-top:4px">'+esc(view.err)+'</div>':'')+
+    (view.err?'<div class="rw"><button class="sm ghost" data-a="retry-char" data-cid="'+cid+'" data-vid="'+view.id+'">↻ Réessayer</button></div>':'')+
+  '</div>';
 }
-function retryTask(){const T=TASK;if(!T||!T.err)return;TASK=null;task(T.step,T.title,T.fn,T.after)}
-setInterval(()=>{if(!TASK||TASK.err)return;const e=$('#el');if(e)e.textContent=Math.round((Date.now()-TASK.start)/1000)+' s';paintFeed()},1000);
-
-function go(n){if(TASK)return;if(page>0)P.last=page;page=n;render()}
-function done(step,sub){P.sub[step]=sub;save();render()}
-function runImages(){
-  const todo=P.clips.filter(c=>!c.img);
-  if(!todo.length){done(2,'rev');return}
-  task(2,'Génération des images',async()=>{
-    const it=fd('Création des '+todo.length+' image(s)…');setPg(0,todo.length);let n=0;
-    await Promise.all(todo.map(async c=>{await genImg(c.id);n++;setPg(n,todo.length);it.t='Création des images ('+n+'/'+todo.length+')…';paintFeed()}));
-    chk();
-    const miss=P.clips.filter(c=>!c.img);
-    if(miss.length){it.t='Nouvel essai pour '+miss.length+' image(s)…';paintFeed();await Promise.all(miss.map(c=>genImg(c.id)));chk()}
-    fdDone(it,P.clips.filter(c=>c.img).length+'/'+P.clips.length+' image(s) prête(s)');
-  },()=>done(2,'rev'));
+function charCard(c){
+  const done=c.views.filter(v=>v.img).length;
+  return '<div class="cd char"><h3>'+esc(c.name)+' <span class="badge">'+esc(c.id)+'</span><span class="badge ok">'+done+'/'+c.views.length+'</span></h3>'+
+    '<textarea data-chardesc="'+c.id+'" rows="2" placeholder="Description physique">'+esc(c.desc)+'</textarea>'+
+    '<div class="rw" style="margin-top:8px">'+btn('dlcharbundle','⬇ Toutes les vues (ZIP)','sm gold','data-cid="'+c.id+'" '+(done>0?'':'disabled'))+'</div>'+
+    '<div class="grid6" style="margin-top:10px">'+c.views.map(v=>charViewCard(c.id,v)).join('')+'</div>'+
+  '</div>';
 }
-
-const V={0:{},1:{},2:{},3:{}};
-V[0].cfg=()=>'<div class="hero">'+hd(1,'Tes clés API <b>Agnès</b>')+guide('👉 Colle ta clé Agnès. <b>1 seule clé suffit</b> (les clés d\'un même compte partagent le quota).')+'<textarea id="keys" rows="8" spellcheck="false" placeholder="sk-…">'+esc(KEYS.list.map(k=>k.k).join('\n'))+'</textarea>'+'<label class="f"><span class="lab">Type de clés</span><select id="plan"><option value="free" '+(KEYS.plan=='free'?'selected':'')+'>Gratuites</option><option value="plan" '+(KEYS.plan=='plan'?'selected':'')+'>Payantes</option></select></label>'+'<div id="kl" class="chips"></div>'+foot('',nextBtn('savekeys','Valider mes clés'))+'</div>';
+function panelCard(board,panel,idx){
+  const isP=(idx===0&&board.id==='S01');
+  const has=!!panel.img;
+  const busy=panel.busy;
+  return '<div class="cd panel'+(isP?' principal':'')+'" id="p-'+panel.id+'">'+
+    '<div class="lab">'+esc(panel.id)+' · '+esc(board.title)+(busy?' <span class="badge warn">en cours</span>':'')+(panel.vst==='ok'?' <span class="badge ok">vidéo prête</span>':'')+(panel.vst==='er'?' <span class="badge er">échec</span>':'')+'</div>'+
+    imBox(panel)+
+    (panel.video?'<video src="'+esc(panel.video)+'" controls playsinline preload="metadata" style="width:100%;border-radius:6px;margin:6px 0"></video>':'')+
+    '<textarea data-paneldesc="'+panel.id+'" rows="2" placeholder="Description visuelle">'+esc(panel.desc)+'</textarea>'+
+    '<div class="info"><b>Décor</b> '+esc(panel.decor)+' · <b>Cadrage</b> '+esc(panel.framing)+' · <b>Action</b> '+esc(panel.action)+'</div>'+
+    '<textarea data-panelimgprompt="'+panel.id+'" rows="2" placeholder="Prompt image">'+esc(panel.imgPrompt)+'</textarea>'+
+    '<textarea data-panelanimprompt="'+panel.id+'" rows="2" placeholder="Prompt animation">'+esc(panel.animPrompt)+'</textarea>'+
+    '<div class="rw"><span class="lab">Durée : '+panel.duration+'s</span>'+
+      '<button class="sm ghost" data-a="panel-dur" data-id="'+panel.id+'" data-d="2">2s</button>'+
+      '<button class="sm ghost" data-a="panel-dur" data-id="'+panel.id+'" data-d="4">4s</button>'+
+      '<button class="sm ghost" data-a="panel-dur" data-id="'+panel.id+'" data-d="6">6s</button>'+
+      '<button class="sm ghost" data-a="panel-dur" data-id="'+panel.id+'" data-d="8">8s</button>'+
+    '</div>'+
+    '<div class="rw"><button class="sm ghost" data-a="panel-chars" data-id="'+panel.id+'">👥 Personnages ('+panel.chars.length+')</button></div>'+
+    '<div class="rw">'+
+      btn('panel-img','↻ Image','sm','data-id="'+panel.id+'" '+(busy?'disabled':''))+
+      (busy?btn('abort','■','sm ghost','data-key="'+panel.id+'"'):'')+
+      btn('panel-dl','⬇','sm ghost','data-id="'+panel.id+'" '+(has?'':'disabled'))+
+      '<label class="sm btn ghost" style="cursor:pointer">⬆<input type="file" accept="image/*" hidden data-uppanel="'+panel.id+'"></label>'+
+      btn('panel-vid','🎬','sm gold','data-id="'+panel.id+'"')+
+      btn('panel-del','🗑','sm ghost','data-id="'+panel.id+'"')+
+    '</div>'+
+    (panel.err?'<div class="lab" style="color:var(--er);margin-top:4px">'+esc(panel.err)+'</div>':'')+
+    (panel.err?'<div class="rw"><button class="sm ghost" data-a="retry-panel" data-id="'+panel.id+'">↻ Réessayer</button></div>':'')+
+  '</div>';
+}
+function boardCard(board){
+  const done=board.panels.filter(p=>p.img).length;
+  return '<div class="cd" id="b-'+board.id+'"><h3>'+esc(board.id)+' — '+esc(board.title)+' <span class="badge">'+board.panels.length+' case(s)</span><span class="badge ok">'+done+'/'+board.panels.length+'</span></h3>'+
+    '<input type="text" data-boardtitle="'+board.id+'" value="'+esc(board.title)+'" placeholder="Titre de la scène">'+
+    '<div class="grid" style="margin-top:10px">'+board.panels.map((p,i)=>panelCard(board,p,i)).join('')+'</div>'+
+    '<div class="rw" style="margin-top:10px">'+
+      btn('panel-add','+ Ajouter une case','sm','data-bid="'+board.id+'"')+
+      btn('board-zip','⬇ Images (ZIP)','sm gold','data-bid="'+board.id+'" '+(done>0?'':'disabled'))+
+      btn('board-del','Supprimer la planche','sm ghost','data-bid="'+board.id+'"')+
+    '</div>'+
+  '</div>';
+}
 
 /* ═════════════════════════════════════════════════════════════════════
-   ÉTAPE 2 — PROMPTS avec Scène globale + Durée + Séquence continue
+   VUES
    ═════════════════════════════════════════════════════════════════════ */
-V[1].cfg=()=>{
-  const total=P.clips.length;
-  const seqPreview=[];for(let i=0;i<Math.min(total,5);i++)seqPreview.push('Clip '+(i+1)+' : '+CAM_ANGLES[i%CAM_ANGLES.length]);
-  const totalSec=(P.duration||10)*total;
-  return '<div class="hero">'+hd(2,'Tes <b>prompts</b> ASMR')+
-  guide('👉 Décris ta <b>scène globale</b>, choisis la durée, et écris le prompt de chaque clip. Le mode séquence ajoute automatiquement des angles caméra variés.')+
-  '<h3>1 · Scène globale (appliquée à tous les clips)</h3>'+
-  '<textarea id="gscene" rows="3" placeholder="Ex : Sablier en verre noir mat, liquide cyan et or, fond noir, éclairage macro cinématographique">'+esc(P.globalScene||'')+'</textarea>'+
-  '<h3>2 · Durée par clip</h3>'+
-  '<div class="gc">'+[5,8,10,12].map(d=>'<button class="'+((P.duration||10)==d?'sel':'')+'" data-a="dur" data-n="'+d+'">'+d+' secondes</button>').join('')+'</div>'+
-  '<div class="seq-preview">⏱ Durée totale estimée : <b>'+totalSec+' secondes</b> ('+total+' clips × '+(P.duration||10)+'s)</div>'+
-  '<h3>3 · Mode séquence continue</h3>'+
-  '<label class="toggle"><input type="checkbox" data-a="cont" '+(P.continuity?'checked':'')+'><span>'+(P.continuity?'✅ Activé — angles caméra auto, cohérence garantie':'⬜ Désactivé — chaque clip est indépendant')+'</span></label>'+
-  (P.continuity?'<div class="seq-preview"><b>Ordre des angles caméra :</b><br>'+seqPreview.join('<br>')+'</div>':'')+
-  '<h3>4 · Format</h3>'+
-  '<div class="gc">'+[['9:16','Portrait 9:16'],['1:1','Carré 1:1'],['16:9','Paysage 16:9']].map(r=>'<button class="'+(P.ratio==r[0]?'sel':'')+'" data-a="ratio" data-n="'+r[0]+'">'+r[1]+'</button>').join('')+'</div>'+
-  '<h3>5 · Presets</h3>'+
-  '<div class="gc">'+PRESETS.map((p,i)=>'<button data-a="preset" data-i="'+i+'">'+esc(p.n)+'</button>').join('')+'</div>'+
-  '<h3>6 · Nombre de clips</h3>'+
-  '<div class="gc">'+[[1,'1'],[3,'3'],[5,'5'],[8,'8'],[10,'10']].map(n=>'<button class="'+((P.nclips||3)==n[0]?'sel':'')+'" data-a="nclips" data-n="'+n[0]+'">'+n[1]+'</button>').join('')+'</div>'+
-  '<h3>7 · Tes clips</h3>'+
-  '<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+
-  '<div class="rw" style="margin-top:10px">'+btn('addclip','+ Ajouter un clip')+'</div>'+
-  foot(btn('go','← Précédent','','data-n="0"'),nextBtn('go','Générer les images',P.clips.length?'data-n="2"':'disabled data-off="1"'))+'</div>';
+const V={0:{},1:{},2:{},3:{}};
+
+V[0].cfg=()=>{
+  const hasKey=KEYS.list.length>0;
+  const revealed=KEYS.revealed;
+  const keyVal=hasKey?KEYS.list.map(k=>k.k).join('\n'):'';
+  return '<div class="hero">'+hd(1,'Ta clé API <b>Agnès</b>')+
+    guide('👉 La clé est stockée <b>uniquement dans ton navigateur</b>. Elle n\'est <b>jamais</b> publiée sur GitHub. <b>Avertissement</b> : toute clé saisie dans un navigateur peut être lue par quiconque a accès à l\'appareil ou au code de la page, <b>et par le proxy</b> qui relaie les requêtes. Pour un usage partagé, un backend dédié est nécessaire.','wt')+
+    '<label class="f"><span class="lab">Clé API '+(hasKey?'<span class="badge ok">renseignée</span>':'<span class="badge er">absente</span>')+'</span></label>'+
+    '<div class="key-row">'+
+      '<input type="'+(revealed?'text':'password')+'" id="keyInput" placeholder="sk-…" autocomplete="off" value="'+esc(keyVal)+'">'+
+      '<button class="ghost" data-a="togglekey">'+(revealed?'🙈':'👁')+'</button>'+
+    '</div>'+
+    '<label class="f"><span class="lab">Type de clés</span><select id="plan">'+
+      '<option value="free" '+(KEYS.plan==='free'?'selected':'')+'>Gratuites (RPM limité)</option>'+
+      '<option value="plan" '+(KEYS.plan==='plan'?'selected':'')+'>Payantes (RPM élevé)</option>'+
+    '</select></label>'+
+    '<div id="kl" class="chips"></div>'+
+    '<div class="info">Stockage : <span id="storageInfo">…</span></div>'+
+    '<div class="rw" style="margin-top:14px">'+
+      btn('savekeys','✓ Valider mes clés','big')+
+      (hasKey?btn('clearkeys','🗑 Effacer la clé','ghost'):'')+
+    '</div>'+
+  '</div>';
 };
-V[2].cfg=()=>'<div class="hero">'+hd(3,'Prêt à générer les <b>images</b>')+guide('✓ Clique sur le bouton pour lancer la création des images.')+'<div class="rw">'+btn('startimg','✦ Lancer la génération','big')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'))+'</div>';
-V[2].rev=()=>'<div class="hero">'+hd(3,'Tes <b>images</b>')+guide('✓ Vérifie-les, régénère si besoin, puis passe aux vidéos.','go')+'<div class="grid">'+P.clips.map(clipCard).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="1"'),nextBtn('go','Passer aux vidéos','data-n="3"'))+'</div>';
-V[3].cfg=()=>'<div class="hero">'+hd(4,'Les <b>vidéos</b>')+'<p class="sub">Séquence de '+P.clips.length+' clips × '+(P.duration||10)+'s = <b>'+((P.duration||10)*P.clips.length)+' secondes</b> au total. Relance auto toutes les 2min30.</p>'+'<div class="cd" id="qp" style="margin:12px 0"></div><div class="kp" id="kp"></div><div class="grid" id="tiles" style="margin-top:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">'+P.clips.map((c,i)=>tile(c,i)).join('')+'</div>'+foot(btn('go','← Précédent','','data-n="2"'))+'</div>';
 
-function view(){if(TASK)return workView();const s=P.sub[page]||'cfg';const v=V[page];const fn=v[s]||v.cfg;return fn?fn():'<div class="hero"><div class="guide er">Vue introuvable</div></div>'}
-function render(keep){
+V[1].cfg=()=>'<div class="hero">'+hd(2,'Références des <b>personnages</b>')+
+  guide('👉 Pour chaque personnage : 6 vues. Désigne une vue comme <b>★ principale</b> : elle sert de référence pour les autres vues et pour les cases du storyboard.','gd')+
+  guide('⚠️ Agnes Image accepte jusqu\'à <b>'+MAX_REF+' références</b> par génération. La cohérence dépend du modèle — aucune garantie absolue.','wt')+
+  P.characters.map(charCard).join('')+
+  foot(btn('go','← Précédent','ghost','data-n="0"'),nextBtn('go','Voir le storyboard','data-n="2"'))+'</div>';
+
+V[2].cfg=()=>'<div class="hero">'+hd(3,'<b>Storyboard</b> du film')+
+  guide('👉 4 planches prévues pour ~60 s. Chaque case est indépendante : génération manuelle, confirmation obligatoire.')+
+  P.boards.map(boardCard).join('')+
+  '<div class="rw" style="margin-top:10px">'+btn('board-add','+ Ajouter une planche','')+'</div>'+
+  foot(btn('go','← Précédent','ghost','data-n="1"'),nextBtn('go','Passer à la production','data-n="3"'))+'</div>';
+
+V[3].cfg=()=>{
+  const panels=[];for(const b of P.boards)for(const p of b.panels)panels.push({b,p});
+  const totalSec=panels.reduce((s,x)=>s+(x.p.duration||4),0);
+  const imgDone=panels.filter(x=>x.p.img).length;
+  return '<div class="hero">'+hd(4,'Production <b>case par case</b>')+
+    guide('👉 Clique sur <b>↻ Image</b> sur la case voulue. Une confirmation s\'affiche avant toute requête.','gd')+
+    '<div class="info"><b>'+panels.length+'</b> cases · <b>'+totalSec+'</b> s cumulées · images prêtes : <b>'+imgDone+'/'+panels.length+'</b></div>'+
+    guide('🎬 <b>Génération vidéo désactivée</b> : je n\'ai pas pu vérifier que le service Agnes vidéo est opérationnel. Le bouton affiche un message sans lancer de requête.','wt')+
+    P.boards.map(boardCard).join('')+
+    '<div class="rw" style="margin-top:14px">'+
+      btn('export-full','⬇ Export COMPLET (JSON + images)','sm gold')+
+      btn('export-meta','⬇ Export léger','sm')+
+      '<label class="sm btn" style="cursor:pointer">⬆ Importer un projet<input type="file" accept=".json" hidden id="importFile"></label>'+
+      btn('export-all-zip','⬇ TOUTES les images (ZIP)','sm gold')+
+    '</div>'+
+    foot(btn('go','← Précédent','ghost','data-n="2"'))+
+  '</div>';
+};
+
+function view(){const s=(P&&P.sub&&P.sub[page])||'cfg';const v=V[page];const fn=v[s]||v.cfg;return fn?fn():'<div class="hero">'+guide('Vue introuvable','er')+'</div>'}
+function render(){
+  if(!P)return;
   P.max=Math.max(P.max||0,page);P.page=page;
-  $('#steps').innerHTML=STEPS.map((s,i)=>{const can=!TASK&&i!=page&&(i==0||(KEYS.list.length&&i<=P.max));return '<button class="st '+(i==page?'on':can?'ok':'')+'" '+(can?'data-a="go" data-n="'+i+'"':'disabled')+'>'+(i+1)+'. '+s+'</button>'}).join('');
+  $('#steps').innerHTML=STEPS.map((s,i)=>{const can=i!==page&&(i===0||(KEYS.list.length&&i<=P.max));return '<button class="st '+(i===page?'on':can?'ok':'')+'" '+(can?'data-a="go" data-n="'+i+'"':'disabled')+'>'+(i+1)+'. '+s+'</button>'}).join('');
   $('#main').innerHTML=view();
-  if(TASK){paintFeed();pgb()}
-  else if(page==0)keysChips();
-  else if(page==3){stats();qui()}
-  else syncNext();
-  if(!keep)scrollTo(0,0);
-  save();
+  if(page===0){keysChips();updateStorageInfo()}
+  save();refreshQui();
 }
+function refresh(){render()}
 function keysChips(){const e=$('#kl');if(!e)return;e.innerHTML=KEYS.list.map((k,i)=>'<span class="chip '+(k.off?'off':'')+'">#'+(i+1)+' …'+esc(k.k.slice(-4))+'</span>').join('')}
-
-const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
-function qHtml(ok,left,total){
-  if(total&&ok==total)return guide('<b>🎉 Toutes les vidéos sont prêtes !</b> Assemble-les dans CapCut pour créer ta vidéo finale de '+((P.duration||10)*total)+'s.','go');
-  if(!Q.on&&Q.st=='idle'&&!ok)return guide('<b>Prêt.</b> 👉 Séquence de '+total+' clips × '+(P.duration||10)+'s = '+((P.duration||10)*total)+' secondes.')+'<div class="rw">'+btn('qstart','▶ Lancer la production','big')+'</div>';
-  if(!Q.on)return guide('<b>En pause.</b> '+ok+' prête(s), '+left+' restante(s).','wt')+'<div class="rw">'+btn('qstart','▶ Reprendre','big')+'</div>';
-  if(Q.st=='full')return guide('<b>⏳ Nouvel essai dans <b id="cd" style="font:600 18px Orbitron">'+fmt((Q.next-Date.now())/1000)+'</b></b>','wt')+'<div class="rw">'+btn('qnow','Tester','sm')+btn('qpause','❚❚ Pause','sm')+'</div>';
-  return guide('<b>⚙ Production en cours.</b> '+ok+' prête(s), '+left+' restante(s).'+(VID_MODE?' <b>'+VID_MODE+'</b>':''))+'<div class="rw">'+btn('qpause','❚❚ Pause','sm')+'</div>';
+function refreshQui(){
+  const c=$('#qchip');if(!c||!P)return;
+  const panels=[];for(const b of P.boards)for(const p of b.panels)panels.push(p);
+  const imgs=panels.filter(p=>p.img).length;
+  const running=LOCKS.size;
+  c.textContent='IMG · '+imgs+'/'+panels.length+(running?' · '+running+' en cours':'');
+  c.className='chip '+(imgs===panels.length&&panels.length?'':'off');
 }
-function qui(){
-  const n=Date.now(),c=$('#qchip'),all=P?P.clips:[],ok=all.filter(c=>c.vst=='ok').length,left=all.filter(c=>c.vst!='ok'&&c.img).length;
-  if(c){c.style.display=all.some(c=>c.img)?'':'none';c.textContent='VIDÉO · '+(!Q.on?(ok==all.length&&all.length?'terminé':'en pause'):'en cours'+(Q.next>n?' · '+fmt((Q.next-n)/1000):''));c.className='chip '+(!Q.on?'off':'')}
-  const e=$('#qp');if(!e||page!=3||TASK)return;
-  const sig=[Q.st,Q.on,Q.step,ok,left,all.length,VID_MODE].join();
-  if(e.dataset.sig!=sig){e.dataset.sig=sig;e.innerHTML=qHtml(ok,left,all.length)}
-  const cd=$('#cd');if(cd)cd.textContent=fmt((Q.next-n)/1000);
-}
-function stats(){const k=$('#kp');if(!k)return;const a=P?P.clips:[];const n=s=>a.filter(c=>c.vst==s&&c.img).length;k.innerHTML='<div><span class="lab">Clips</span><b>'+a.length+'</b></div><div><span class="lab">Prêtes</span><b>'+n('ok')+'</b></div><div><span class="lab">En cours</span><b>'+n('run')+'</b></div><div><span class="lab">En attente</span><b>'+n('wait')+'</b></div><div><span class="lab">Échecs</span><b>'+n('er')+'</b></div>'}
-function sat(){Q.st='full';Q.next=Date.now()+BACK[Math.min(Q.step,BACK.length-1)]*60000;log('wr','retest dans '+BACK[Math.min(Q.step,BACK.length-1)]+' min');Q.step=Math.min(Q.step+1,BACK.length-1);save();qui()}
-
-async function launch(c){
-  const live=KEYS.list.filter(k=>!k.off);
-  if(!live.length)return toast('Aucune clé active');
-  const fr=c.img.u&&c.img.u.indexOf('data:')!==0?c.img.u:ref(c.img);
-  c.vst='run';c.err='';refresh(c.id);
-
-  const secs=String(P.duration||10);
-  const prompt=vp(c);
-
-  const strategies=[
-    {n:'v2.5-flash reference',f:()=>({model:'agnes-video-2.5-flash',prompt:prompt,mode:'reference',images:[fr],seconds:secs,size:'720P',aspect_ratio:P.ratio})},
-    {n:'v2.5-flash keyframe',f:()=>({model:'agnes-video-2.5-flash',prompt:prompt,mode:'keyframe',first_frame:fr,seconds:secs,size:'720P',aspect_ratio:P.ratio})},
-    {n:'v2.5-flash text',f:()=>({model:'agnes-video-2.5-flash',prompt:prompt,mode:'text',seconds:secs,size:'720P',aspect_ratio:P.ratio})}
-  ];
-
-  let success=null,tried=0,allRateLimited=true;
-  for(const s of strategies){
-    const o=live[keyIdx++%live.length];
-    tried++;
-    if(tried>1)await sleep(5000);
-    const body=s.f();
-    log('in','stratégie '+tried+' : '+s.n+' ('+secs+'s)');
-    let r;
-    try{
-      r=await fetch(PX(AGNES_API+'/videos'),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+o.k},body:JSON.stringify(body)});
-    }catch(e){log('er','réseau '+s.n+' : '+e.message);continue}
-    if(r.ok){
-      success={r:r,strat:s.n,key:o.k};
-      log('ok','✔✔✔ SUCCÈS : '+s.n+' · '+secs+'s');
-      VID_MODE=s.n;
-      localStorage.setItem('asmr_vid_mode',VID_MODE);
-      toast('🎬 '+s.n+' → vidéo lancée ('+secs+'s)');
-      break;
-    }
-    const t=(await r.text().catch(()=>'')).slice(0,300);
-    log('er','['+tried+'] '+s.n+' → '+r.status+' '+t.slice(0,150));
-    if(r.status==400){allRateLimited=false;continue}
-    if(r.status==429){o.cool=Date.now()+90000;allRateLimited=true;continue}
-    if(r.status==503){o.cool=Date.now()+90000;continue}
-    if(r.status==401){allRateLimited=false;o.off=true;continue}
-    if(r.status==402||r.status==403){allRateLimited=false;o.cool=Date.now()+120000;continue}
-    allRateLimited=false;
-  }
-
-  if(!success){
-    if(allRateLimited){log('wr','rate limit → pause longue (5 min)');c.vst='wait';refresh(c.id);save();Q.next=Date.now()+300000;return}
-    c.vst='er';c.err='Aucune stratégie ne marche ('+tried+' essayées)';refresh(c.id);save();return;
-  }
-
-  const d=await success.r.json();
-  const id=d.video_id||d.id||d.task_id||(d.data&&(d.data.video_id||d.data.id));
-  if(!id){c.vst='er';c.err='pas de video_id';refresh(c.id);save();return}
-  let inner=null;
-  try{if(id.indexOf('video_')===0){let b=id.slice(6);while(b.length%4)b+='=';const m=atob(b).match(/video_id:([^;]+)/);if(m)inner=m[1].trim()}}catch(e){}
-  c.task={id:id,inner:inner,k:success.key,model:VID};
-  Q.st='run';Q.step=0;save();qui();poll(c);
-}
-async function poll(c){
-  const t=c.task,model=VID,end=Date.now()+30*60000;
-  let n=0,miss=0;const key=t.k;
+async function updateStorageInfo(){
+  const el=$('#storageInfo');if(!el)return;
   try{
-    await sleep(30000);
-    while(Date.now()<end&&P){
-      const ids=[t.id];if(t.inner&&t.inner!=t.id)ids.push(t.inner);
-      const iv=Math.min(20000,6000+n*1500);n++;
-      let d=null;
-      for(let i=0;i<ids.length;i++){
-        try{const r=await fetch(PX(AGNES_POLL+'?video_id='+encodeURIComponent(ids[i])+'&model_name='+encodeURIComponent(model)),{headers:{Authorization:'Bearer '+key}});if(r.status==429){await sleep(8000);continue}if(!r.ok){miss++;continue}d=await r.json();break}catch(e){miss++}
-      }
-      if(d){
-        const s=String(d.status||d.state||'').toLowerCase();
-        if(['completed','succeeded','done','success','finished','ready'].indexOf(s)>=0){
-          const u=(d.metadata&&(d.metadata.url||d.metadata.video_url))||(d.output&&(d.output.url||d.output.video_url))||(d.data&&(d.data.url||d.data.video_url))||d.url||d.video_url||d.remixed_from_video_id;
-          if(!u)throw new Error('terminé sans URL');
-          c.video=u;c.vst='ok';c.seen=false;c.err='';
-          log('ok','vidéo prête');toast('🎬 Nouvelle vidéo prête');
-          save();refresh(c.id);return;
-        }
-        if(['failed','error','cancelled','canceled','rejected'].indexOf(s)>=0)throw new Error(String((d.error&&d.error.message)||d.error||'échec').slice(0,100));
-      }else if(miss>20)throw new Error('suivi impossible');
-      await sleep(iv);
-    }
-    throw new Error('délai dépassé');
-  }catch(e){c.vst='er';c.err=e.message;log('er','vidéo : '+e.message);save();refresh(c.id)}
-}
-setInterval(function(){
-  qui();
-  if(!P||!Q.on||Q.busy||Date.now()<Q.next)return;
-  const a=P.clips,todo=a.filter(c=>c.vst=='wait'&&c.img),run=a.filter(c=>c.vst=='run').length;
-  if(!todo.length){if(!run){Q.on=false;Q.st='idle';save();qui()}return}
-  if(run>=1)return;
-  Q.busy=true;
-  launch(todo[0]).catch(e=>{log('er','file : '+e.message);Q.on=false;Q.st='paused'}).then(()=>{Q.busy=false});
-},150000);
-
-async function wake(){try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}}
-function qstart(){
-  if(!P.clips.some(c=>c.img))return toast('Il faut d\'abord des images');
-  P.clips.forEach(c=>{if(c.vst=='er'){c.vst='wait';c.err=''}});
-  Q.on=true;
-  if(Q.st=='paused'||Q.st=='idle')Q.st='run';
-  if(Q.st!='full')Q.next=0;
-  wake();save();qui();
-  log('in','séquence '+P.clips.length+' clips × '+(P.duration||10)+'s = '+((P.duration||10)*P.clips.length)+'s');
+    if(navigator.storage&&navigator.storage.estimate){
+      const est=await navigator.storage.estimate();
+      const used=(est.usage/1024/1024).toFixed(1);
+      const quota=(est.quota/1024/1024).toFixed(0);
+      const pct=Math.min(100,est.usage/Math.max(1,est.quota)*100).toFixed(0);
+      el.innerHTML=used+' Mo / '+quota+' Mo ('+pct+'%)';
+    }else el.textContent='Quota non disponible';
+  }catch(e){el.textContent='Indisponible'}
 }
 
-const OK_DURING=['con','stoptask','retrytask','canceltask'];
+/* ═════════════════════════════════════════════════════════════════════
+   CLICS
+   ═════════════════════════════════════════════════════════════════════ */
 async function onClick(e){
   const b=e.target.closest('[data-a]');if(!b||b.disabled)return;
   const a=b.dataset.a,id=b.dataset.id;
-  if(TASK&&OK_DURING.indexOf(a)<0)return toast('Opération en cours');
-  if(a=='go')go(+b.dataset.n);
-  else if(a=='con')$('#con').classList.toggle('on');
-  else if(a=='savekeys'){
-    const ks=Array.from(new Set($('#keys').value.split(/[\s,;]+/).map(s=>s.trim()).filter(s=>s.length>=8)));
-    if(!ks.length)return toast('Colle au moins une clé');
+
+  if(a==='go'){
+    await flushSave();
+    page=+b.dataset.n;render();return;
+  }
+  if(a==='con'){$('#con').classList.toggle('on');return}
+  if(a==='togglekey'){KEYS.revealed=!KEYS.revealed;render();return}
+
+  if(a==='savekeys'){
+    const ks=Array.from(new Set(($('#keyInput').value||'').split(/[\s,;]+/).map(s=>s.trim()).filter(s=>s.length>=8)));
+    if(!ks.length)return toast('Colle au moins une clé valide');
     KEYS.plan=$('#plan').value;
     KEYS.list=ks.map(k=>mkKey(k));
-    dbPut('config',{key:'keys',list:ks,plan:KEYS.plan}).catch(er=>log('wr','clés : '+er.message));
+    await dbPut('config',{key:'keys',list:ks,plan:KEYS.plan}).catch(er=>log('wr','clés : '+er.message));
     toast('✓ '+ks.length+' clé(s) active(s)');
-    go(Math.max(1,P.last||1));
+    page=1;render();return;
   }
-  else if(a=='ratio'){P.ratio=b.dataset.n;render(true)}
-  else if(a=='dur'){P.duration=+b.dataset.n;render(true)}
-  else if(a=='nclips'){const n=+b.dataset.n;P.nclips=n;while(P.clips.length<n){const preset=PRESETS[P.clips.length%PRESETS.length];P.clips.push({id:uid(),prompt:preset.p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false})}while(P.clips.length>n)P.clips.pop();render(true)}
-  else if(a=='preset'){const p=PRESETS[+b.dataset.i];if(P.clips.length&&confirm('Remplacer le prompt du 1er clip ?')){P.clips[0].prompt=p.p;render(true)}}
-  else if(a=='addclip'){const preset=PRESETS[P.clips.length%PRESETS.length];P.clips.push({id:uid(),prompt:preset.p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false});render(true)}
-  else if(a=='delclip'){if(!confirm('Supprimer ?'))return;P.clips=P.clips.filter(c=>c.id!=id);render(true)}
-  else if(a=='genimg')genImg(id);
-  else if(a=='startimg')runImages();
-  else if(a=='stoptask'){TASK.stop=true;toast('Arrêt…')}
-  else if(a=='retrytask')retryTask();
-  else if(a=='canceltask'){TASK=null;render()}
-  else if(a=='qstart')qstart();
-  else if(a=='qpause'){Q.on=false;Q.st='paused';save();qui()}
-  else if(a=='qnow'){Q.on=true;Q.next=0;P.clips.forEach(c=>{if(c.vst=='er'){c.vst='wait';c.err=''}});log('in','test manuel');save()}
-  else if(a=='sess')sessions();
-  else if(a=='new'){setP(newP());const m=$('#md');if(m)m.classList.remove('on');page=KEYS.list.length?1:0;render()}
-}
-document.addEventListener('click',e=>{onClick(e).catch(er=>{log('er','action : '+er.message)})});
-window.addEventListener('error',e=>{log('er',e.message)});
-window.addEventListener('unhandledrejection',e=>{log('er','promesse : '+(e.reason&&e.reason.message||e.reason))});
+  if(a==='clearkeys'){
+    if(!confirm('Effacer la clé API du navigateur ?'))return;
+    KEYS.list=[];KEYS.revealed=false;
+    await dbDel('config','keys').catch(()=>{});
+    toast('Clé effacée');
+    render();return;
+  }
 
-/* INPUT : prompt clip + scène globale */
+  if(a==='abort'){const k=b.dataset.key;if(k){abortTask(k);log('wr','Annulation demandée pour '+k);toast('Annulation…')}return}
+
+  if(a==='setprincipal'){const c=findChar(b.dataset.cid);if(!c)return;c.principalViewId=b.dataset.vid;save();refresh();return}
+  if(a==='gencharview'){
+    if(!KEYS.list.length)return toast('Enregistre d\'abord ta clé API');
+    confirmModal('Générer une vue de référence',[
+      ['Modèle',IMG],['Format','1:1'],
+      ['Personnage',b.dataset.cid],['Vue',b.dataset.vid],
+      ['Coût','INCONNU (non exposé)']
+    ],()=>genCharView(b.dataset.cid,b.dataset.vid),'Générer');return;
+  }
+  if(a==='retry-char'){genCharView(b.dataset.cid,b.dataset.vid);return}
+  if(a==='dlcharview'){
+    const c=findChar(b.dataset.cid);const v=c&&c.views.find(x=>x.id===b.dataset.vid);
+    if(v&&v.img)dlImage(v.img,charFilename(b.dataset.cid,b.dataset.vid));
+    return;
+  }
+  if(a==='dlcharbundle'){dlZip(await charFiles(b.dataset.cid),'personnage_'+safeName(b.dataset.cid)+'.zip');return}
+
+  if(a==='panel-dur'){const f=findPanel(id);if(f){f.panel.duration=+b.dataset.d;save();refresh()}return}
+  if(a==='panel-chars'){
+    const f=findPanel(id);if(!f)return;
+    const inner=$('#modalInner');
+    inner.innerHTML='<h3>Personnages — '+esc(id)+'</h3>'+
+      P.characters.map(c=>{
+        const checked=f.panel.chars.indexOf(c.id)>=0?'checked':'';
+        return '<label style="display:flex;align-items:center;gap:10px;padding:8px 0"><input type="checkbox" data-charpick="'+c.id+'" '+checked+'><span>'+esc(c.name)+'</span></label>';
+      }).join('')+
+      '<div class="info">Limite : <b>'+MAX_REF+'</b> références envoyées max par génération.</div>'+
+      '<div class="rw" style="justify-content:flex-end;margin-top:10px">'+btn('modal-cancel','Fermer','ghost')+'</div>';
+    $('#modal').classList.add('on');
+    inner.querySelector('[data-a="modal-cancel"]').onclick=()=>{
+      const checked=Array.from(inner.querySelectorAll('[data-charpick]')).filter(x=>x.checked).map(x=>x.dataset.charpick);
+      f.panel.chars=checked;save();$('#modal').classList.remove('on');refresh();
+    };
+    return;
+  }
+  if(a==='panel-img'){
+    if(!KEYS.list.length)return toast('Enregistre d\'abord ta clé API');
+    const f=findPanel(id);if(!f)return;
+    const refsCount=Math.min((f.panel.chars||[]).length,MAX_REF);
+    confirmModal('Générer l\'image de '+id,[
+      ['Modèle',IMG],['Format',P.ratio],
+      ['Références',refsCount+'/'+MAX_REF],
+      ['Coût','INCONNU (non exposé)']
+    ],()=>genPanelImg(id),'Générer');return;
+  }
+  if(a==='retry-panel'){genPanelImg(id);return}
+  if(a==='panel-dl'){
+    const f=findPanel(id);if(!f||!f.panel.img)return;
+    dlImage(f.panel.img,panelFilename(id));return;
+  }
+  if(a==='panel-vid'){launchVideo(id);return}
+  if(a==='panel-add'){
+    const board=P.boards.find(x=>x.id===b.dataset.bid);if(!board)return;
+    const n=board.panels.length+1;
+    const newId=board.id+'_P'+String(n).padStart(2,'0');
+    board.panels.push(newPanel({id:newId,desc:'Nouvelle case',chars:[],decor:'',framing:'',action:'',imgPrompt:'',animPrompt:'',duration:4}));
+    save();refresh();return;
+  }
+  if(a==='panel-del'){
+    const f=findPanel(id);if(!f)return;
+    if(!confirm('Supprimer la case '+id+' ?'))return;
+    f.board.panels=f.board.panels.filter(x=>x.id!==id);save();refresh();return;
+  }
+  if(a==='board-add'){
+    const n=P.boards.length+1;
+    const newId='S'+String(n).padStart(2,'0');
+    P.boards.push({id:newId,title:'Nouvelle scène',panels:[newPanel({id:newId+'_P01',desc:'Nouvelle case',chars:[],decor:'',framing:'',action:'',imgPrompt:'',animPrompt:'',duration:4})]});
+    save();refresh();return;
+  }
+  if(a==='board-del'){
+    if(!confirm('Supprimer la planche '+b.dataset.bid+' ?'))return;
+    P.boards=P.boards.filter(x=>x.id!==b.dataset.bid);save();refresh();return;
+  }
+  if(a==='board-zip'){dlZip(await boardFiles(b.dataset.bid),'storyboard_'+safeName(b.dataset.bid)+'.zip');return}
+  if(a==='export-full'){await exportJSON(true);return}
+  if(a==='export-meta'){await exportJSON(false);return}
+  if(a==='export-all-zip'){dlZip(await allFiles(),'projet_scifi_'+P.id+'.zip');return}
+  if(a==='sess'){sessions();return}
+  if(a==='new'){await flushSave();setP(newP());page=KEYS.list.length?1:0;const m=$('#md');if(m)m.remove();render();return}
+}
+document.addEventListener('click',e=>{onClick(e).catch(er=>{log('er','action : '+(er.message||er))})});
+
+/* INPUT */
 document.addEventListener('input',e=>{
-  const t=e.target;
-  if(!P)return;
-  if(t.id==='gscene'){P.globalScene=t.value;save();return}
-  if(!t.dataset.f)return;
-  const f=find(t.dataset.id);if(!f)return;
-  f.o[t.dataset.f]=t.value;save();
+  const t=e.target;if(!P)return;
+  if(t.dataset.chardesc){const c=findChar(t.dataset.chardesc);if(c){c.desc=t.value;save()}return}
+  if(t.dataset.charPrompt){const[cid,vid]=t.dataset.charPrompt.split('/');const v=findView(cid,vid);if(v){v.prompt=t.value;save()}return}
+  if(t.dataset.paneldesc){const f=findPanel(t.dataset.paneldesc);if(f){f.panel.desc=t.value;save()}return}
+  if(t.dataset.panelimgprompt){const f=findPanel(t.dataset.panelimgprompt);if(f){f.panel.imgPrompt=t.value;save()}return}
+  if(t.dataset.panelanimprompt){const f=findPanel(t.dataset.panelanimprompt);if(f){f.panel.animPrompt=t.value;save()}return}
+  if(t.dataset.boardtitle){const b=P.boards.find(x=>x.id===t.dataset.boardtitle);if(b){b.title=t.value;save()}return}
 });
-/* CHANGE : checkbox séquence + upload photo */
+
+/* CHANGE */
 document.addEventListener('change',async e=>{
-  const t=e.target;
-  if(t.dataset.a==='cont'){P.continuity=t.checked;render(true);return}
-  if(t.dataset.up){
-    const f=t.files[0];if(!f)return;const c=find(t.dataset.up);if(!c)return;
-    const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1024/Math.max(im.width,im.height));const cv=document.createElement('canvas');cv.width=Math.round(im.width*s);cv.height=Math.round(im.height*s);cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);const d=cv.toDataURL('image/jpeg',0.88);c.o.img={u:d,d:d};c.o.err='';refresh(c.o.id);save()};im.src=fr.result};fr.readAsDataURL(f);
+  const t=e.target;if(!P)return;
+  if(t.id==='importFile'){const f=t.files[0];if(f)importJSON(f);return}
+  if(t.dataset.upview){
+    const[cid,vid]=t.dataset.upview.split('/');const v=findView(cid,vid);if(!v)return;
+    const f=t.files[0];if(!f)return;
+    const fr=new FileReader();
+    fr.onload=()=>{const im=new Image();im.onload=async()=>{
+      const s=Math.min(1,1024/Math.max(im.width,im.height));
+      const cv=document.createElement('canvas');cv.width=Math.round(im.width*s);cv.height=Math.round(im.height*s);
+      cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+      const d=cv.toDataURL('image/jpeg',0.88);
+      v.img={u:d,d:d};v.err='';await flushSave();refresh();
+    };im.src=fr.result};
+    fr.readAsDataURL(f);return;
+  }
+  if(t.dataset.uppanel){
+    const f=findPanel(t.dataset.uppanel);if(!f)return;
+    const file=t.files[0];if(!file)return;
+    const fr=new FileReader();
+    fr.onload=()=>{const im=new Image();im.onload=async()=>{
+      const s=Math.min(1,1024/Math.max(im.width,im.height));
+      const cv=document.createElement('canvas');cv.width=Math.round(im.width*s);cv.height=Math.round(im.height*s);
+      cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+      const d=cv.toDataURL('image/jpeg',0.88);
+      f.panel.img={u:d,d:d};f.panel.err='';await flushSave();refresh();
+    };im.src=fr.result};
+    fr.readAsDataURL(file);return;
   }
 });
+
+/* SESSIONS */
 async function sessions(){
-  let md=$('#md');if(!md){document.body.insertAdjacentHTML('beforeend','<div id="md" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:70;display:none;align-items:center;justify-content:center;padding:16px"><div id="mdc" style="background:#14141f;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:20px;border:1px solid var(--a);border-radius:8px"></div></div>');md=$('#md')}
-  const l=(await dbAll('clips')).sort((a,b)=>b.upd-a.upd);
-  $('#mdc').innerHTML='<h3>Mes clips</h3><div class="rw">'+btn('new','+ Nouveau projet')+btn('closemd','Fermer','sm')+'</div>'+l.map(p=>{const ok=p.clips?p.clips.filter(c=>c.video).length:0;return '<div class="cd" style="margin-top:8px"><b>'+esc(p.title||'Projet')+'</b><div class="lab">'+new Date(p.upd).toLocaleString('fr-FR')+' · '+(p.clips?p.clips.length:0)+' clips · '+ok+' vidéos</div><div class="rw">'+btn('open','Ouvrir','sm','data-id="'+p.id+'"')+btn('delsess','Supprimer','sm','data-id="'+p.id+'"')+'</div></div>'}).join('');
-  md.classList.add('on');
+  let md=$('#md');
+  if(!md){document.body.insertAdjacentHTML('beforeend','<div id="md" class="modal on"><div class="modal-inner" id="mdc"></div></div>');md=$('#md')}
+  const l=(await dbAll('projects')).sort((a,b)=>b.upd-a.upd);
+  $('#mdc').innerHTML='<h3>Mes projets</h3><div class="rw">'+btn('new','+ Nouveau projet','')+btn('closemd','Fermer','sm ghost')+'</div>'+
+    l.map(p=>{
+      const panels=[];for(const b of (p.boards||[]))for(const x of (b.panels||[]))panels.push(x);
+      const imgs=panels.filter(x=>x.img).length;
+      return '<div class="cd" style="margin-top:8px"><b>'+esc(p.title||'Projet')+'</b>'+
+        '<div class="lab">'+new Date(p.upd).toLocaleString('fr-FR')+' · '+(p.boards||[]).length+' planches · '+panels.length+' cases · '+imgs+' image(s)</div>'+
+        '<div class="rw">'+btn('open','Ouvrir','sm','data-id="'+p.id+'"')+btn('delsess','Supprimer','sm ghost','data-id="'+p.id+'"')+'</div></div>';
+    }).join('');
 }
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,id=b.dataset.id;
-  if(a=='closemd'){const m=$('#md');if(m)m.classList.remove('on')}
-  if(a=='open'){const p=await dbGet('clips',id);if(p){setP(p);page=KEYS.list.length?Math.max(1,Math.min(p.page||1,3)):0;const m=$('#md');if(m)m.classList.remove('on');render();resume()}}
-  if(a=='delsess'){if(!confirm('Supprimer ?'))return;await dbDel('clips',id);if(P.id==id){setP(newP());page=KEYS.list.length?1:0;render()}sessions()}
+  if(a==='closemd'){const m=$('#md');if(m)m.remove();return}
+  if(a==='open'){
+    await flushSave();
+    const p=await dbGet('projects',id);if(!p)return;
+    setP(p);page=KEYS.list.length?1:0;
+    const m=$('#md');if(m)m.remove();
+    render();return;
+  }
+  if(a==='delsess'){
+    if(!confirm('Supprimer ce projet ?'))return;
+    await dbDel('projects',id);
+    const m=$('#md');if(m)m.remove();
+    sessions();return;
+  }
 });
 
-function resume(){P.clips.forEach(c=>{if(c.vst=='run'&&c.task){if(KEYS.list.some(k=>k.k==c.task.k))poll(c);else c.vst='wait'}});qui()}
+/* DÉMARRAGE */
 (async()=>{
-  try{db=await Promise.race([openDB(),new Promise((_,rj)=>setTimeout(()=>rj(new Error('délai')),3000))])}catch(e){db=null;fall(e)}
+  try{db=await Promise.race([openDB(),new Promise((_,rj)=>setTimeout(()=>rj(new Error('délai')),3000))])}catch(e){db=null;fall()}
   try{
     const k=await dbGet('config','keys');
     if(k){KEYS.plan=k.plan||'free';KEYS.list=(k.list||[]).map(mkKey)}
-    VID_MODE=localStorage.getItem('asmr_vid_mode');
-    const last=await dbGet('config','last'),p=last&&await dbGet('clips',last.v);
+    const last=await dbGet('config','last');
+    const p=last?await dbGet('projects',last.v):null;
     setP(p||newP());
-    if(!P.clips.length){P.clips=[0,1,2].map(i=>({id:uid(),prompt:PRESETS[i].p,img:null,video:null,vst:'wait',busy:false,err:'',task:null,seen:false}))}
   }catch(e){setP(newP())}
   page=KEYS.list.length?Math.max(1,Math.min(P.page||1,3)):0;
-  render();resume();
-  log('in','ASMR LOOP prêt · séquence '+P.clips.length+' clips × '+(P.duration||10)+'s');
+  render();
+  const nbPanels=P.boards.reduce((s,b)=>s+b.panels.length,0);
+  log('in','SCI-FI STUDIO prêt · '+P.boards.length+' planches · '+nbPanels+' cases');
 })();
 </script></body></html>
