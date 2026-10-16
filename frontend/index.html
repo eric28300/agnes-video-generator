@@ -159,11 +159,11 @@ const abortTask=id=>{const c=ABORTS.get(id);if(c&&!c.signal.aborted)c.abort();};
 const PX=u=>PROXY+encodeURIComponent(u);
 const QUEUE={running:false,abort:false,current:null};
 
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('xenoscope_v10',1);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id'});if(!d.objectStoreNames.contains('assets'))d.createObjectStore('assets',{keyPath:'id'});if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'});}});}
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('xenoscope_v11',1);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id'});if(!d.objectStoreNames.contains('assets'))d.createObjectStore('assets',{keyPath:'id'});if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'});}});}
 const tx=(s,m,f)=>new Promise((res,rej)=>{try{const r=f(db.transaction(s,m).objectStore(s));r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});
 let mode='idb';
 const mem={projects:{},assets:{},config:{}};
-const lsK=(s,k)=>'xeno10_'+s+'_'+k;
+const lsK=(s,k)=>'xeno11_'+s+'_'+k;
 function fall(){if(mode==='idb'){mode='ls';log('wr','IndexedDB indisponible → localStorage');}}
 async function dbGet(s,k){if(db&&mode==='idb'){try{return await tx(s,'readonly',o=>o.get(k));}catch(e){fall();}}try{const v=localStorage.getItem(lsK(s,k));if(v!=null)return JSON.parse(v);}catch(e){}return mem[s][k];}
 async function dbPut(s,v){const k=v.key||v.id;mem[s][k]=v;if(db&&mode==='idb'){try{return await tx(s,'readwrite',o=>o.put(v));}catch(e){fall();}}if(s==='config'||s==='projects'){try{localStorage.setItem(lsK(s,k),JSON.stringify(v));return true;}catch(e){return false;}}return false;}
@@ -172,9 +172,6 @@ async function dbAll(s){if(db&&mode==='idb'){try{return await tx(s,'readonly',o=
 
 function blobToBytes(blob){return blob.arrayBuffer().then(b=>new Uint8Array(b));}
 
-/* ═════════════════════════════════════════════════════════════════════
-   PATCH 1 — Détection du type MIME réel depuis les octets
-   ═════════════════════════════════════════════════════════════════════ */
 function detectImageMime(bytes){
   if(!bytes||bytes.length<4)return null;
   if(bytes[0]===0xFF&&bytes[1]===0xD8)return 'image/jpeg';
@@ -183,6 +180,11 @@ function detectImageMime(bytes){
   if(bytes.length>=12&&bytes[0]===0x52&&bytes[1]===0x49&&bytes[2]===0x46&&bytes[3]===0x46&&bytes[8]===0x57&&bytes[9]===0x45&&bytes[10]===0x42&&bytes[11]===0x50)return 'image/webp';
   return null;
 }
+function bytesToHexPreview(bytes,n){
+  let hex='';const max=Math.min(n||16,bytes.length);
+  for(let i=0;i<max;i++)hex+=('0'+bytes[i].toString(16)).slice(-2)+' ';
+  return hex.trim();
+}
 
 function bytesToBase64(bytes){
   let binary='';const chunk=0x8000;
@@ -190,18 +192,13 @@ function bytesToBase64(bytes){
   return btoa(binary);
 }
 
-/* ═════════════════════════════════════════════════════════════════════
-   PATCH 3 — saveAssetFromBlob utilise detectImageMime
-   ═════════════════════════════════════════════════════════════════════ */
 async function saveAssetFromBlob(blob,mime,tag){
   if(!blob||!blob.size)throw new Error('Blob vide');
   const bytes=await blobToBytes(blob);
   if(!bytes||bytes.length<200)throw new Error('Binaire anormal ('+bytes.length+' o)');
   const real=detectImageMime(bytes);
   if(!real){
-    let preview='';
-    for(let i=0;i<Math.min(64,bytes.length);i++)preview+=('0'+bytes[i].toString(16)).slice(-2);
-    log('er','⚠ Octets ne sont pas une image connue · taille='+bytes.length+' · hex début='+preview);
+    log('er','⚠ Octets non-image · taille='+bytes.length+' · hex='+bytesToHexPreview(bytes,32));
     throw new Error('Le contenu reçu n\'est pas une image valide');
   }
   const id='asset_'+uid()+Date.now().toString(36);
@@ -258,7 +255,7 @@ async function slot(){for(;;){let live=KEYS.list.filter(o=>!o.off);if(!live.leng
 async function callApi(url,body,signal,method){method=method||'POST';let lastErr=null;for(let a=0;a<3;a++){const o=await slot();try{const opt={method:method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+o.k}};if(body&&method==='POST')opt.body=JSON.stringify(body);if(signal)opt.signal=signal;const r=await fetch(url,opt);if(r.ok){o.bad=0;F=Math.max(1,F*0.97);return r;}const t=await r.text().catch(()=>'');log('er','HTTP '+r.status+' '+sanLog(t));if(r.status===429){o.cool=Date.now()+(parseInt(r.headers.get('Retry-After'))||30)*1000;F=Math.min(4,F*1.5);lastErr=new Error(frErr(429));continue;}if(r.status===401){o.bad++;if(o.bad>=2)o.off=true;lastErr=new Error(frErr(401));continue;}if(r.status>=500){lastErr=new Error(frErr(r.status));await sleep(2500*Math.pow(2,a));continue;}throw Object.assign(new Error(frErr(r.status,t)),{fatal:true});}catch(e){if(e.name==='AbortError')throw e;if(e.fatal)throw e;lastErr=e;await sleep(1500*(a+1));}}throw lastErr||new Error('Échec réseau');}
 
 /* ═════════════════════════════════════════════════════════════════════
-   PATCH 2 — fetchAsBlob détecte le vrai type MIME
+   fetchAsBlob — 3 tentatives + réparation PNG amputé
    ═════════════════════════════════════════════════════════════════════ */
 async function fetchAsBlob(url){
   if(!url)return null;
@@ -273,32 +270,70 @@ async function fetchAsBlob(url){
       return new Blob([arr],{type:real});
     }catch(e){return null;}
   }
-  let r=null;
-  try{r=await fetch(url,{mode:'cors'});}catch(e){log('wr','Direct fetch échoué : '+sanLog(e.message));}
-  if(!r||!r.ok){
-    try{r=await fetch(PX(url));}catch(e){log('er','Proxy fetch échoué : '+sanLog(e.message));}
+  const tryFetch=async(u,label)=>{
+    try{
+      const r=await fetch(u,{mode:'cors'});
+      if(r.ok){log('in','Fetch OK ('+label+')');return r;}
+      log('wr','Fetch '+label+' HTTP '+r.status);
+    }catch(e){log('wr','Fetch '+label+' : '+sanLog(e.message));}
+    return null;
+  };
+  /* 1. Direct */
+  let r=await tryFetch(url,'direct');
+  /* 2. weserv.nl — proxy image public, renvoie du binaire propre */
+  if(!r){
+    const cleanUrl=url.replace(/^https?:\/\//,'');
+    r=await tryFetch('https://images.weserv.nl/?url='+encodeURIComponent(cleanUrl),'weserv');
   }
-  if(!r||!r.ok){log('er','Fetch HTTP '+(r?r.status:'?'));return null;}
+  /* 3. Ton proxy Vercel (dernier recours) */
+  if(!r)r=await tryFetch(PX(url),'proxy');
+  if(!r){log('er','Tous les fetch ont échoué pour '+url.slice(0,80));return null;}
   try{
-    const buf=await r.arrayBuffer();
-    const bytes=new Uint8Array(buf);
+    let bytes=new Uint8Array(await r.arrayBuffer());
+    /* Log hex (fiable, pas de caractères invisibles) */
+    log('in','Reçu · taille='+bytes.length+' · hex début='+bytesToHexPreview(bytes,16));
+    /* RÉPARATION : PNG amputé (commence par 50 4E 47 = "PNG" sans \x89 initial) */
+    if(bytes.length>4&&bytes[0]===0x50&&bytes[1]===0x4E&&bytes[2]===0x47&&bytes[3]===0x0D||bytes[3]===0x0A||bytes[3]===0x49){
+      /* Contenu commence par "PNG" (50 4E 47) — le \x89 et les 4 bytes de contrôle ont été mangés */
+      log('wr','PNG amputé détecté — reconstruction de l\'entête');
+      const fixed=new Uint8Array(bytes.length+4);
+      fixed[0]=0x89;fixed[1]=0x50;fixed[2]=0x4E;fixed[3]=0x47;
+      fixed[4]=0x0D;fixed[5]=0x0A;fixed[6]=0x1A;fixed[7]=0x0A;
+      /* Trouver où commence IHDR dans les bytes d'origine */
+      let start=3;
+      while(start<Math.min(20,bytes.length)&&!(bytes[start]===0x49&&bytes[start+1]===0x48&&bytes[start+2]===0x44&&bytes[start+3]===0x52))start++;
+      if(start>=bytes.length){log('er','IHDR introuvable');return null;}
+      log('wr','IHDR trouvé à offset '+start+' — reconstruction depuis '+start);
+      /* Réallouer à la bonne taille */
+      const proper=new Uint8Array(8+(bytes.length-start));
+      proper[0]=0x89;proper[1]=0x50;proper[2]=0x4E;proper[3]=0x47;
+      proper[4]=0x0D;proper[5]=0x0A;proper[6]=0x1A;proper[7]=0x0A;
+      proper.set(bytes.subarray(start),8);
+      bytes=proper;
+    }
+    /* JPEG amputé (commence par "JFIF") */
+    if(bytes.length>4&&bytes[0]===0x4A&&bytes[1]===0x46&&bytes[2]===0x49&&bytes[3]===0x46){
+      log('wr','JPEG amputé — reconstruction');
+      const proper=new Uint8Array(bytes.length+2);
+      proper[0]=0xFF;proper[1]=0xD8;
+      proper.set(bytes,2);
+      bytes=proper;
+    }
     const real=detectImageMime(bytes);
     if(!real){
-      let preview='';
-      for(let i=0;i<Math.min(64,bytes.length);i++)preview+=('0'+bytes[i].toString(16)).slice(-2);
-      log('er','⚠ Réponse non-image · HTTP '+r.status+' · taille='+bytes.length+' · hex début='+preview);
+      log('er','⚠ Type non reconnu · hex='+bytesToHexPreview(bytes,32));
       return null;
     }
-    log('in','Image OK · '+real+' · '+fmtSize(bytes.length));
+    log('ok','Image '+real+' · '+fmtSize(bytes.length));
     return new Blob([bytes],{type:real});
-  }catch(e){log('er','Lecture blob échouée : '+sanLog(e.message));return null;}
+  }catch(e){log('er','Lecture blob : '+sanLog(e.message));return null;}
 }
 
 async function mkImg(prompt,refsBase64,ratio,signal){
   const body={model:IMG,prompt:san(prompt),n:1,size:'1K',ratio:ratio||(P?P.ratio:'9:16'),extra_body:{response_format:'url'}};
   if(refsBase64&&refsBase64.length){
     const clean=refsBase64.filter(x=>x&&typeof x==='string'&&x.length>100).slice(0,MAX_REF);
-    if(clean.length){body.extra_body.image=clean;log('in','Envoi '+clean.length+' réf. base64 (~'+Math.round(clean[0].length/1024)+' Ko chacune)');}
+    if(clean.length){body.extra_body.image=clean;log('in','Envoi '+clean.length+' réf. base64 (~'+Math.round(clean[0].length/1024)+' Ko)');}
   }
   const r=await callApi(PX(AGNES_API+'/images/generations'),body,signal);
   let d;try{d=await r.json();}catch(e){throw new Error('Réponse JSON invalide d\'Agnes');}
@@ -314,7 +349,7 @@ async function mkImg(prompt,refsBase64,ratio,signal){
       for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
       const real=detectImageMime(arr)||'image/png';
       blob=new Blob([arr],{type:real});
-    }catch(e){log('er','Décodage b64 échoué : '+e.message);}
+    }catch(e){log('er','Décodage b64 : '+e.message);}
   }
   if(!blob&&remoteUrl)blob=await fetchAsBlob(remoteUrl);
   if(!blob)throw new Error('Image générée mais non téléchargeable');
@@ -360,7 +395,7 @@ async function dlZip(files,zipName){if(typeof JSZip==='undefined')return toast('
 async function zipChar(cid){const c=findChar(cid);if(!c)return;const files=[];for(const v of c.views){if(v.img&&v.img.assetId){const b=await getAssetBlob(v.img.assetId);if(b)files.push({name:charFilename(cid,v.id),blob:b});}}if(!files.length)return toast('Aucune image');dlZip(files,'personnage_'+safeName(cid)+'.zip');}
 async function zipBoard(bid){const b=P.boards.find(x=>x.id===bid);if(!b)return;const files=await filesFromPanels(b.panels);if(!files.length)return toast('Aucune image');dlZip(files,'scene_'+safeName(bid)+'.zip');}
 async function zipAll(){const all=[];for(const c of P.characters){for(const v of c.views){if(v.img&&v.img.assetId){const b=await getAssetBlob(v.img.assetId);if(b)all.push({name:'personnages/'+charFilename(c.id,v.id),blob:b});}}}for(const b of P.boards)for(const p of b.panels){if(p.img&&p.img.assetId){const blob=await getAssetBlob(p.img.assetId);if(blob)all.push({name:'storyboard/'+panelFilename(p.id),blob:blob});}}if(!all.length)return toast('Aucune image');dlZip(all,'xenoscope_images_'+P.id+'.zip');}
-async function exportProjectFull(){toast('⏳ Sauvegarde…');try{const zip=new JSZip();const meta={version:10,kind:'xenoscope-full',created:Date.now(),project:JSON.parse(JSON.stringify(P))};for(const c of meta.project.characters||[])for(const v of c.views||[]){if(v.img&&v.img.assetId){v.img._ref='assets/'+v.img.assetId+'.bin';}}for(const b of meta.project.boards||[])for(const p of b.panels||[]){if(p.img&&p.img.assetId){p.img._ref='assets/'+p.img.assetId+'.bin';}}zip.file('project.json',JSON.stringify(meta,null,2));const assetIds=new Set();for(const c of P.characters||[])for(const v of c.views||[])if(v.img&&v.img.assetId)assetIds.add(v.img.assetId);for(const b of P.boards||[])for(const p of b.panels||[])if(p.img&&p.img.assetId)assetIds.add(p.img.assetId);let n=0;for(const id of assetIds){const blob=await getAssetBlob(id);if(blob){zip.file('assets/'+id+'.bin',blob);n++;}}const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:1}});const url=URL.createObjectURL(blob);triggerDownloadUrl(url,'xenoscope_save_'+P.id+'.zip');setTimeout(()=>URL.revokeObjectURL(url),60000);log('ok','Sauvegarde · '+n+' assets');toast('💾 Sauvegarde exportée ('+fmtSize(blob.size)+')');}catch(e){log('er','Export : '+e.message);toast('❌ '+e.message);}}
+async function exportProjectFull(){toast('⏳ Sauvegarde…');try{const zip=new JSZip();const meta={version:11,kind:'xenoscope-full',created:Date.now(),project:JSON.parse(JSON.stringify(P))};for(const c of meta.project.characters||[])for(const v of c.views||[]){if(v.img&&v.img.assetId){v.img._ref='assets/'+v.img.assetId+'.bin';}}for(const b of meta.project.boards||[])for(const p of b.panels||[]){if(p.img&&p.img.assetId){p.img._ref='assets/'+p.img.assetId+'.bin';}}zip.file('project.json',JSON.stringify(meta,null,2));const assetIds=new Set();for(const c of P.characters||[])for(const v of c.views||[])if(v.img&&v.img.assetId)assetIds.add(v.img.assetId);for(const b of P.boards||[])for(const p of b.panels||[])if(p.img&&p.img.assetId)assetIds.add(p.img.assetId);let n=0;for(const id of assetIds){const blob=await getAssetBlob(id);if(blob){zip.file('assets/'+id+'.bin',blob);n++;}}const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:1}});const url=URL.createObjectURL(blob);triggerDownloadUrl(url,'xenoscope_save_'+P.id+'.zip');setTimeout(()=>URL.revokeObjectURL(url),60000);log('ok','Sauvegarde · '+n+' assets');toast('💾 Sauvegarde exportée ('+fmtSize(blob.size)+')');}catch(e){log('er','Export : '+e.message);toast('❌ '+e.message);}}
 function importProjectFull(file){const fr=new FileReader();fr.onload=async()=>{try{if(typeof JSZip==='undefined')throw new Error('JSZip non chargé');const zip=await JSZip.loadAsync(fr.result);const metaFile=zip.file('project.json');if(!metaFile)throw new Error('project.json absent');const meta=JSON.parse(await metaFile.async('string'));if(!meta.project)throw new Error('Format invalide');const proj=meta.project;const assetMap=new Map();const assetFiles=Object.keys(zip.files).filter(n=>n.startsWith('assets/')&&!zip.files[n].dir);for(const path of assetFiles){const oldId=path.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');let blob=null;try{blob=await zip.files[path].async('blob');}catch(e){}if(blob){const newId='asset_'+uid()+Date.now().toString(36)+Math.random().toString(36).slice(2,5);const bytes=await blobToBytes(blob);const real=detectImageMime(bytes)||blob.type||'image/png';await dbPut('assets',{id:newId,bytes,mime:real,size:bytes.length,created:Date.now(),tag:'import'});assetMap.set(oldId,newId);}}for(const c of proj.characters||[])for(const v of c.views||[]){if(v.img&&v.img._ref){const oldId=v.img._ref.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');const newId=assetMap.get(oldId);if(newId)v.img={assetId:newId,size:0,created:Date.now()};else v.img=null;}}for(const b of proj.boards||[])for(const p of b.panels||[]){if(p.img&&p.img._ref){const oldId=p.img._ref.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');const newId=assetMap.get(oldId);if(newId)p.img={assetId:newId,size:0,created:Date.now()};else p.img=null;}}const normalized=normalizeProject(proj);setP(normalized);page=1;refresh();toast('✓ Projet restauré · '+assetMap.size+' image(s)');}catch(e){log('er','Import : '+e.message);toast('❌ '+e.message);}};fr.onerror=()=>toast('❌ Lecture impossible');fr.readAsArrayBuffer(file);}
 async function exportProjectMeta(){const clean=JSON.parse(JSON.stringify(P));for(const c of clean.characters||[])for(const v of c.views||[]){if(v.img){v.img={assetId:v.img.assetId||null,note:'médias non intégrés'};}}for(const b of clean.boards||[])for(const p of b.panels||[]){if(p.img)p.img={assetId:p.img.assetId||null,note:'médias non intégrés'};}const json=JSON.stringify(clean,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);triggerDownloadUrl(url,'xenoscope_meta_'+P.id+'.json');setTimeout(()=>URL.revokeObjectURL(url),10000);toast('JSON exporté');}
 
