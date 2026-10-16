@@ -90,15 +90,13 @@ const IMG='agnes-image-2.5-flash';
 const RPM={free:{img:10},plan:{img:100}};
 const STEPS=['Clé API','Personnages','Storyboard','Production'];
 const MAX_REF=4;
-const COMPRESS_MAX=1024;
-const COMPRESS_QUALITY=0.82;
 const SCENE_STYLE='cinematic sci-fi, deep blue-violet palette with golden accents, volumetric realistic lighting, ultra-detailed, photorealistic, 8K, contemplative atmosphere';
 const ASM_W=1080, ASM_H=1920, ASM_FPS=30;
 const MAX_BATCH=30;
 const RETRY_BASE_MS=8000;
 const MAX_RETRIES=4;
 const ERR_FR={400:'Requête refusée (paramètres invalides).',401:'Clé API invalide ou expirée.',402:'Compte sans crédit suffisant.',403:'Accès refusé.',404:'Ressource introuvable.',408:'Délai dépassé.',429:'Trop de requêtes : attends une minute.',500:'Erreur serveur Agnes.',502:'Passerelle Agnes indisponible.',503:'Serveur Agnes saturé.',504:'Délai serveur dépassé.'};
-const sanLog=s=>{if(!s)return '';let out=String(s);out=out.replace(/sk-[A-Za-z0-9_\-]{6,}/g,'sk-***');out=out.replace(/Bearer\s+[A-Za-z0-9_\-\.]{6,}/gi,'Bearer ***');return out.slice(0,220);};
+const sanLog=s=>{if(!s)return '';let out=String(s);out=out.replace(/sk-[A-Za-z0-9_\-]{6,}/g,'sk-***');out=out.replace(/Bearer\s+[A-Za-z0-9_\-\.]{6,}/gi,'Bearer ***');return out.slice(0,300);};
 const CHAR_DEFAULTS=[
 {id:'pere',name:'Le Père',bible:'the father: adult male humanoid alien, subtle blue-grey skin, luminous amber eyes, dark garments with gold trim, noble and calm posture',desc:'Extraterrestre humanoïde adulte mâle, peau bleu-gris subtile, yeux ambrés lumineux, traits extraterrestres réalistes mais élégants, vêtements sombres avec liserés dorés, posture noble et calme'},
 {id:'mere',name:'La Mère',bible:'the mother: adult female humanoid alien, subtle blue-grey skin, luminous amber eyes, dark garments with gold trim, attentive and caring expression',desc:'Extraterrestre humanoïde adulte femelle, peau bleu-gris subtile, yeux ambrés lumineux, traits extraterrestres réalistes mais élégants, vêtements sombres avec liserés dorés, expression attentive et bienveillante'},
@@ -144,7 +142,7 @@ const uid=()=>Math.random().toString(36).slice(2,9);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const san=t=>String(t==null?'':t).replace(/[‘’]/g,"'").replace(/[“”«»]/g,'"').replace(/[–—]/g,'-').replace(/…/g,'...').replace(/[\u00a0\u202f]/g,' ');
 const safeName=s=>String(s||'').toLowerCase().replace(/[^a-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'');
-const frErr=(code,msg)=>(ERR_FR[code]||('Erreur HTTP '+code))+(msg?(' — '+sanLog(String(msg)).slice(0,140)):'');
+const frErr=(code,msg)=>(ERR_FR[code]||('Erreur HTTP '+code))+(msg?(' — '+sanLog(String(msg)).slice(0,200)):'');
 const fmtSize=n=>{if(!n)return '0 o';if(n<1024)return n+' o';if(n<1048576)return (n/1024).toFixed(1)+' Ko';if(n<1073741824)return (n/1048576).toFixed(1)+' Mo';return (n/1073741824).toFixed(2)+' Go';};
 let db=null,P=null,page=0,F=1,saveTimer=null,savePending=false;
 let PROXY=DEFAULT_PROXY;
@@ -161,11 +159,14 @@ const abortTask=id=>{const c=ABORTS.get(id);if(c&&!c.signal.aborted)c.abort();};
 const PX=u=>PROXY+encodeURIComponent(u);
 const QUEUE={running:false,abort:false,current:null};
 
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('xenoscope_v9',1);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id'});if(!d.objectStoreNames.contains('assets'))d.createObjectStore('assets',{keyPath:'id'});if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'});}});}
+/* ═════════════════════════════════════════════════════════════════════
+   INDEXEDDB v10
+   ═════════════════════════════════════════════════════════════════════ */
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('xenoscope_v10',1);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id'});if(!d.objectStoreNames.contains('assets'))d.createObjectStore('assets',{keyPath:'id'});if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'});}});}
 const tx=(s,m,f)=>new Promise((res,rej)=>{try{const r=f(db.transaction(s,m).objectStore(s));r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});
 let mode='idb';
 const mem={projects:{},assets:{},config:{}};
-const lsK=(s,k)=>'xeno9_'+s+'_'+k;
+const lsK=(s,k)=>'xeno10_'+s+'_'+k;
 function fall(){if(mode==='idb'){mode='ls';log('wr','IndexedDB indisponible → localStorage');}}
 async function dbGet(s,k){if(db&&mode==='idb'){try{return await tx(s,'readonly',o=>o.get(k));}catch(e){fall();}}try{const v=localStorage.getItem(lsK(s,k));if(v!=null)return JSON.parse(v);}catch(e){}return mem[s][k];}
 async function dbPut(s,v){const k=v.key||v.id;mem[s][k]=v;if(db&&mode==='idb'){try{return await tx(s,'readwrite',o=>o.put(v));}catch(e){fall();}}if(s==='config'||s==='projects'){try{localStorage.setItem(lsK(s,k),JSON.stringify(v));return true;}catch(e){return false;}}return false;}
@@ -173,57 +174,40 @@ async function dbDel(s,k){delete mem[s][k];if(db&&mode==='idb'){try{return await
 async function dbAll(s){if(db&&mode==='idb'){try{return await tx(s,'readonly',o=>o.getAll());}catch(e){fall();}}const o=Object.assign({},mem[s]);if(s==='config'||s==='projects'){try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n&&n.startsWith(lsK(s,''))){const v=JSON.parse(localStorage.getItem(n));o[v.key||v.id]=v;}}}catch(e){}}return Object.values(o);}
 
 /* ═════════════════════════════════════════════════════════════════════
-   ASSETS v9 : { id, bytes:Uint8Array, mime, size, created, tag }
+   ASSETS v10 — octets BRUTS (aucune compression canvas)
+   { id, bytes: Uint8Array, mime, size, created, tag }
    ═════════════════════════════════════════════════════════════════════ */
-function bytesToBlob(bytes,mime){return new Blob([bytes],{type:mime||'image/jpeg'});}
 function blobToBytes(blob){return blob.arrayBuffer().then(b=>new Uint8Array(b));}
-/* Base64 pur avec chunking (évite "Maximum call stack size exceeded") */
 function bytesToBase64(bytes){
   let binary='';const chunk=0x8000;
-  for(let i=0;i<bytes.length;i+=chunk){
-    binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));
-  }
+  for(let i=0;i<bytes.length;i+=chunk){binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));}
   return btoa(binary);
 }
-/* Compression via canvas.toBlob (plus fiable que toDataURL sur Android) */
-function compressBlob(blob){
-  return new Promise(resolve=>{
-    let url=null;
-    try{url=URL.createObjectURL(blob);}catch(e){return resolve(blob);}
-    const im=new Image();
-    im.onload=()=>{
-      try{
-        const w0=im.naturalWidth||im.width;
-        const h0=im.naturalHeight||im.height;
-        const r=Math.min(1,COMPRESS_MAX/Math.max(w0,h0));
-        const w=Math.max(1,Math.round(w0*r));
-        const h=Math.max(1,Math.round(h0*r));
-        const c=document.createElement('canvas');
-        c.width=w;c.height=h;
-        c.getContext('2d').drawImage(im,0,0,w,h);
-        try{URL.revokeObjectURL(url);}catch(e){}
-        c.toBlob(b=>{resolve(b||blob);},'image/jpeg',COMPRESS_QUALITY);
-      }catch(e){
-        try{URL.revokeObjectURL(url);}catch(_){}
-        resolve(blob);
-      }
-    };
-    im.onerror=()=>{try{URL.revokeObjectURL(url);}catch(e){}resolve(blob);};
-    im.src=url;
-  });
-}
 async function saveAssetFromBlob(blob,mime,tag){
-  const compressed=await compressBlob(blob);
-  const bytes=await blobToBytes(compressed);
-  if(!bytes||bytes.length<200)throw new Error('Compression a produit 0 octet');
+  if(!blob||!blob.size)throw new Error('Blob vide');
+  const bytes=await blobToBytes(blob);
+  if(!bytes||bytes.length<200)throw new Error('Binaire anormal ('+bytes.length+' o)');
+  /* Détecter le type réel via magic bytes */
+  let realMime=mime||blob.type||'application/octet-stream';
+  if(bytes[0]===0xFF&&bytes[1]===0xD8)realMime='image/jpeg';
+  else if(bytes[0]===0x89&&bytes[1]===0x50&&bytes[2]===0x4E&&bytes[3]===0x47)realMime='image/png';
+  else if(bytes[0]===0x52&&bytes[1]===0x49&&bytes[2]===0x46&&bytes[3]===0x46)realMime='image/webp';
+  else if(bytes[0]===0x47&&bytes[1]===0x49&&bytes[2]===0x46)realMime='image/gif';
+  else{
+    /* Ce n'est pas une image connue — logguer les 150 premiers caractères */
+    let preview='';
+    try{preview=new TextDecoder('utf-8').decode(bytes.slice(0,150));}catch(e){}
+    log('er','⚠ Blob reçu n\'est pas une image. type='+realMime+' taille='+bytes.length+' début="'+preview.replace(/\s+/g,' ').slice(0,120)+'"');
+    throw new Error('Le contenu reçu n\'est pas une image ('+realMime+')');
+  }
   const id='asset_'+uid()+Date.now().toString(36);
-  const rec={id,bytes,mime:compressed.type||'image/jpeg',size:bytes.length,created:Date.now(),tag:tag||'gen'};
+  const rec={id,bytes,mime:realMime,size:bytes.length,created:Date.now(),tag:tag||'gen'};
   const ok=await dbPut('assets',rec);
   if(!ok)throw new Error('IndexedDB a refusé l\'écriture');
+  log('ok','Asset '+id.slice(-6)+' sauvé · '+realMime+' · '+fmtSize(bytes.length));
   return id;
 }
 async function getAssetRecord(id){if(!id)return null;return await dbGet('assets',id);}
-/* Renvoie un Blob frais — jamais caché, jamais corrompu */
 async function getAssetBlob(id){
   const rec=await dbGet('assets',id);
   if(!rec)return null;
@@ -234,10 +218,10 @@ async function getAssetBlob(id){
       else if(Array.isArray(bytes))bytes=new Uint8Array(bytes);
       else return null;
     }
-    return new Blob([bytes],{type:rec.mime||'image/jpeg'});
+    return new Blob([bytes],{type:rec.mime||'image/png'});
   }
   if(rec.dataUrl){
-    try{const [meta,b64]=String(rec.dataUrl).split(',');const mime=(meta.match(/data:([^;]+)/)||[])[1]||'image/jpeg';const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime});}catch(e){return null;}
+    try{const [meta,b64]=String(rec.dataUrl).split(',');const mime=(meta.match(/data:([^;]+)/)||[])[1]||'image/png';const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime});}catch(e){return null;}
   }
   return null;
 }
@@ -257,7 +241,7 @@ async function getAssetB64(id){
   return null;
 }
 async function deleteAsset(id){if(!id)return;await dbDel('assets',id);}
-function releaseAssetCache(){/* rien à libérer : les ObjectURL sont révoqués après onload */}
+function releaseAssetCache(){}
 
 let saveState='idle';
 function setSaveState(s){saveState=s;const el=$('#saveChip');if(!el)return;if(s==='idle'){el.textContent='💾 —';el.className='chip neutral';}else if(s==='saving'){el.textContent='💾 sauvegarde…';el.className='chip warn';}else if(s==='saved'){const t=new Date();el.textContent='💾 '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');el.className='chip';}else if(s==='error'){el.textContent='💾 ERREUR';el.className='chip off';}}
@@ -268,12 +252,12 @@ async function flushSave(){if(!P)return;clearTimeout(saveTimer);savePending=fals
 async function updateStorageChip(){const el=$('#storageChip');if(!el)return;try{if(!navigator.storage||!navigator.storage.estimate){el.textContent='💽 n/a';el.className='chip neutral';return;}const est=await navigator.storage.estimate();const used=est.usage||0,quota=est.quota||0;if(!quota){el.textContent='💽 '+fmtSize(used);el.className='chip neutral';return;}const pct=used/quota*100;el.textContent='💽 '+fmtSize(used)+' / '+fmtSize(quota)+' ('+pct.toFixed(0)+'%)';el.className='chip '+(pct>85?'off':pct>60?'warn':'');if(pct>90)log('wr','⚠️ Stockage presque plein');}catch(e){el.textContent='💽 n/a';el.className='chip neutral';}}
 async function slot(){for(;;){let live=KEYS.list.filter(o=>!o.off);if(!live.length&&KEYS.list.length){KEYS.list.forEach(o=>{o.off=false;o.bad=0;o.cool=0;});live=KEYS.list;}if(!live.length)throw Object.assign(new Error('Aucune clé active'),{fatal:true});const rpm=RPM[KEYS.plan].img||10;const iv=60000/rpm*1.15*F,now=Date.now();let best=null,bt=1e18;for(const o of live){const t=Math.max(o.img||0,o.cool||0,now);if(t<bt){bt=t;best=o;}}if(bt>now){await sleep(Math.min(bt-now,400));continue;}if(best.cool>Date.now())continue;best.img=now+iv;return best;}}
 async function callApi(url,body,signal,method){method=method||'POST';let lastErr=null;for(let a=0;a<3;a++){const o=await slot();try{const opt={method:method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+o.k}};if(body&&method==='POST')opt.body=JSON.stringify(body);if(signal)opt.signal=signal;const r=await fetch(url,opt);if(r.ok){o.bad=0;F=Math.max(1,F*0.97);return r;}const t=await r.text().catch(()=>'');log('er','HTTP '+r.status+' '+sanLog(t));if(r.status===429){o.cool=Date.now()+(parseInt(r.headers.get('Retry-After'))||30)*1000;F=Math.min(4,F*1.5);lastErr=new Error(frErr(429));continue;}if(r.status===401){o.bad++;if(o.bad>=2)o.off=true;lastErr=new Error(frErr(401));continue;}if(r.status>=500){lastErr=new Error(frErr(r.status));await sleep(2500*Math.pow(2,a));continue;}throw Object.assign(new Error(frErr(r.status,t)),{fatal:true});}catch(e){if(e.name==='AbortError')throw e;if(e.fatal)throw e;lastErr=e;await sleep(1500*(a+1));}}throw lastErr||new Error('Échec réseau');}
-async function fetchAsBlob(url){if(!url)return null;if(url.indexOf('data:')===0){try{const [meta,b64]=url.split(',');const mime=(meta.match(/data:([^;]+)/)||[])[1]||'image/jpeg';const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime});}catch(e){return null;}}try{const r=await fetch(url,{mode:'cors'});if(r.ok)return await r.blob();}catch(e){}try{const r=await fetch(PX(url));if(r.ok)return await r.blob();}catch(e){}return null;}
+async function fetchAsBlob(url){if(!url)return null;if(url.indexOf('data:')===0){try{const [meta,b64]=url.split(',');const mime=(meta.match(/data:([^;]+)/)||[])[1]||'image/png';const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime});}catch(e){return null;}}try{const r=await fetch(url,{mode:'cors'});if(r.ok){const b=await r.blob();log('in','Direct fetch OK · type='+b.type+' · '+fmtSize(b.size));return b;}}catch(e){log('wr','Direct fetch échoué : '+sanLog(e.message));}try{const r=await fetch(PX(url));if(r.ok){const b=await r.blob();log('in','Proxy fetch OK · type='+b.type+' · '+fmtSize(b.size));return b;}else{const txt=await r.text().catch(()=>'');log('er','Proxy HTTP '+r.status+' · '+sanLog(txt));}}catch(e){log('er','Proxy fetch échoué : '+sanLog(e.message));}return null;}
 async function mkImg(prompt,refsBase64,ratio,signal){
   const body={model:IMG,prompt:san(prompt),n:1,size:'1K',ratio:ratio||(P?P.ratio:'9:16'),extra_body:{response_format:'url'}};
   if(refsBase64&&refsBase64.length){
     const clean=refsBase64.filter(x=>x&&typeof x==='string'&&x.length>100).slice(0,MAX_REF);
-    if(clean.length){body.extra_body.image=clean;log('in','Envoi '+clean.length+' réf. base64 (taille ~'+Math.round(clean[0].length/1024)+' Ko)');}
+    if(clean.length){body.extra_body.image=clean;log('in','Envoi '+clean.length+' réf. base64 (~'+Math.round(clean[0].length/1024)+' Ko chacune)');}
   }
   const r=await callApi(PX(AGNES_API+'/images/generations'),body,signal);
   let d;try{d=await r.json();}catch(e){throw new Error('Réponse JSON invalide d\'Agnes');}
@@ -281,18 +265,22 @@ async function mkImg(prompt,refsBase64,ratio,signal){
   const remoteUrl=it&&it.url;
   const b64resp=it&&it.b64_json;
   if(!remoteUrl&&!b64resp)throw new Error('Aucune image reçue');
+  log('in','Réponse Agnes : '+(b64resp?'b64 ('+Math.round(b64resp.length/1024)+' Ko)':'URL '+remoteUrl.slice(0,80)));
   let blob=null;
-  if(b64resp){try{const bin=atob(b64resp);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);blob=new Blob([arr],{type:'image/png'});}catch(e){}}
+  if(b64resp){
+    try{const bin=atob(b64resp);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);blob=new Blob([arr],{type:'image/png'});}
+    catch(e){log('er','Décodage b64 échoué : '+e.message);}
+  }
   if(!blob&&remoteUrl)blob=await fetchAsBlob(remoteUrl);
-  if(!blob)throw new Error('Image générée mais non téléchargeable (CORS/proxy)');
+  if(!blob)throw new Error('Image générée mais non téléchargeable');
   const assetId=await saveAssetFromBlob(blob,blob.type||'image/png','gen');
   return {assetId,size:blob.size||0,created:Date.now()};
 }
 async function migrateProjectAssets(){if(!P)return 0;let count=0;const migrate=async(node)=>{if(!node||!node.img||node.img.assetId)return;const src=node.img.d||node.img.u;if(!src)return;try{const blob=await fetchAsBlob(src);if(!blob)return;const id=await saveAssetFromBlob(blob,blob.type||'image/png','migrate');node.img={assetId:id,migratedAt:Date.now()};count++;}catch(e){}};for(const c of P.characters)for(const v of c.views)await migrate(v);for(const b of P.boards)for(const p of b.panels)await migrate(p);if(count){log('in',count+' image(s) migrée(s)');await flushSave();}return count;}
 function charViewPrompt(char,view){if(view.prompt&&view.prompt.trim())return view.prompt;const bible=char.bible?char.bible+'. ':(char.desc+'. ');return `${bible}${view.en}. ${SCENE_STYLE}`;}
 function panelImgPrompt(panel){const base=panel.imgPrompt&&panel.imgPrompt.trim()?panel.imgPrompt:panel.desc;const bibles=(panel.chars||[]).map(cid=>{const c=findChar(cid);return c?c.bible:null;}).filter(Boolean);const bibleStr=bibles.length?(' Featuring '+bibles.join(' and ')+'.'):'';return `${base}.${bibleStr} ${SCENE_STYLE}`;}
-function charFilename(cid,vid){return safeName(cid)+'_'+safeName(vid)+'.jpg';}
-function panelFilename(pid){const m=pid.match(/^S(\d+)_P(\d+)$/);if(m)return 'scene_'+m[1]+'_case_'+m[2]+'.jpg';return safeName(pid)+'.jpg';}
+function charFilename(cid,vid){return safeName(cid)+'_'+safeName(vid)+'.png';}
+function panelFilename(pid){const m=pid.match(/^S(\d+)_P(\d+)$/);if(m)return 'scene_'+m[1]+'_case_'+m[2]+'.png';return safeName(pid)+'.png';}
 function newChar(def){def=def||{};return {id:def.id||uid(),name:def.name||'Personnage',bible:def.bible||'',desc:def.desc||'',views:VIEW_DEFS.map(v=>{const found=(Array.isArray(def.views)?def.views.find(x=>x.id===v.id):null)||{};return {id:v.id,label:v.label,en:v.en,prompt:found.prompt||'',img:found.img||null,busy:false,err:''};}),principalViewId:def.principalViewId||'face'};}
 function newPanel(def){def=def||{};const st=(def.st==='queued'||def.st==='running'||def.st==='ok'||def.st==='error'||def.st==='paused')?def.st:'idle';return {id:def.id||('P'+uid()),desc:def.desc||'',chars:Array.isArray(def.chars)?def.chars.slice():[],decor:def.decor||'',framing:def.framing||'',action:def.action||'',imgPrompt:def.imgPrompt||def.desc||'',animPrompt:def.animPrompt||'slow zoom in',duration:typeof def.duration==='number'?def.duration:5,img:def.img||null,st:st,busy:false,err:'',retries:typeof def.retries==='number'?def.retries:0,lastAttempt:def.lastAttempt||0};}
 function newBoard(def){def=def||{};return {id:def.id||('S'+uid()),title:def.title||'Scène',panels:Array.isArray(def.panels)?def.panels.map(newPanel):[]};}
@@ -315,7 +303,7 @@ let ffmpegInstance=null,ffmpegLoaded=false;
 async function loadFFmpeg(){if(ffmpegLoaded)return ffmpegInstance;log('in','Chargement ffmpeg.wasm (~30 Mo)…');if(typeof window.FFmpegWASM==='undefined'||typeof window.FFmpegUtil==='undefined')throw new Error('ffmpeg.wasm non chargé');const {FFmpeg}=window.FFmpegWASM;const {toBlobURL}=window.FFmpegUtil;const ffmpeg=new FFmpeg();ffmpeg.on('log',({message})=>{const m=String(message||'');if(m.toLowerCase().includes('error'))log('er','ffmpeg : '+m.slice(0,140));});const baseURL='https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';await ffmpeg.load({coreURL:await toBlobURL(`${baseURL}/ffmpeg-core.js`,'text/javascript'),wasmURL:await toBlobURL(`${baseURL}/ffmpeg-core.wasm`,'application/wasm')});ffmpegInstance=ffmpeg;ffmpegLoaded=true;log('ok','ffmpeg.wasm chargé');return ffmpeg;}
 function showAsmStatus(stage,progress,detail){let el=$('#asmStatus');if(!el){el=document.createElement('div');el.id='asmStatus';el.className='assembly-zone';const m=$('#main');if(m)m.appendChild(el);else document.body.appendChild(el);}el.innerHTML='<div class="lab">🎬 Assemblage MP4</div>'+'<div class="info">'+esc(stage||'')+(detail?' <b>'+esc(detail)+'</b>':'')+' · '+(progress||0)+'%</div>'+'<div class="progress-bar"><i style="width:'+(progress||0)+'%"></i></div>';}
 function hideAsmStatus(delay){setTimeout(()=>{const el=$('#asmStatus');if(el)el.remove();},delay||6000);}
-async function assembleList(panels){if(!panels.length)throw new Error('Aucune case');const missing=panels.filter(p=>!p.img||!p.img.assetId).map(p=>p.id);if(missing.length)throw new Error('Images manquantes : '+missing.slice(0,6).join(', '));showAsmStatus('Chargement moteur',1,'');const ffmpeg=await loadFFmpeg();showAsmStatus('Préparation',5,'');const concatLines=[];const written=[];for(let i=0;i<panels.length;i++){const p=panels[i];const blob=await getAssetBlob(p.img.assetId);if(!blob)throw new Error('Asset introuvable pour '+p.id);const bytes=await blobToBytes(blob);const fname='i_'+String(i).padStart(4,'0')+'.jpg';await ffmpeg.writeFile(fname,bytes);written.push(fname);const dur=Math.max(1,Math.min(15,p.duration||5));concatLines.push(`file '${fname}'`);concatLines.push(`duration ${dur}`);}if(written.length)concatLines.push(`file '${written[written.length-1]}'`);await ffmpeg.writeFile('list.txt',new TextEncoder().encode(concatLines.join('\n')));showAsmStatus('Assemblage',40,'1080×1920 · 30 FPS');const vf=[`scale=${ASM_W}:${ASM_H}:force_original_aspect_ratio=decrease`,`pad=${ASM_W}:${ASM_H}:(ow-iw)/2:(oh-ih)/2:color=black`,`zoompan=z='min(zoom+0.0015,1.15)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${ASM_W}x${ASM_H}:fps=${ASM_FPS}`,`format=yuv420p`].join(',');try{await ffmpeg.exec(['-f','concat','-safe','0','-i','list.txt','-vf',vf,'-c:v','libx264','-preset','veryfast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);}catch(e){throw new Error('ffmpeg : '+(e.message||e));}const data=await ffmpeg.readFile('out.mp4');const bytes=data instanceof Uint8Array?data:new Uint8Array(data);if(!bytes||bytes.length<2048)throw new Error('MP4 vide');try{for(const f of written)await ffmpeg.deleteFile(f).catch(()=>{});await ffmpeg.deleteFile('list.txt').catch(()=>{});await ffmpeg.deleteFile('out.mp4').catch(()=>{});}catch(e){}return new Blob([bytes],{type:'video/mp4'});}
+async function assembleList(panels){if(!panels.length)throw new Error('Aucune case');const missing=panels.filter(p=>!p.img||!p.img.assetId).map(p=>p.id);if(missing.length)throw new Error('Images manquantes : '+missing.slice(0,6).join(', '));showAsmStatus('Chargement moteur',1,'');const ffmpeg=await loadFFmpeg();showAsmStatus('Préparation',5,'');const concatLines=[];const written=[];for(let i=0;i<panels.length;i++){const p=panels[i];const blob=await getAssetBlob(p.img.assetId);if(!blob)throw new Error('Asset introuvable pour '+p.id);const bytes=await blobToBytes(blob);const fname='i_'+String(i).padStart(4,'0')+'.png';await ffmpeg.writeFile(fname,bytes);written.push(fname);const dur=Math.max(1,Math.min(15,p.duration||5));concatLines.push(`file '${fname}'`);concatLines.push(`duration ${dur}`);}if(written.length)concatLines.push(`file '${written[written.length-1]}'`);await ffmpeg.writeFile('list.txt',new TextEncoder().encode(concatLines.join('\n')));showAsmStatus('Assemblage',40,'1080×1920 · 30 FPS');const vf=[`scale=${ASM_W}:${ASM_H}:force_original_aspect_ratio=decrease`,`pad=${ASM_W}:${ASM_H}:(ow-iw)/2:(oh-ih)/2:color=black`,`zoompan=z='min(zoom+0.0015,1.15)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${ASM_W}x${ASM_H}:fps=${ASM_FPS}`,`format=yuv420p`].join(',');try{await ffmpeg.exec(['-f','concat','-safe','0','-i','list.txt','-vf',vf,'-c:v','libx264','-preset','veryfast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','out.mp4']);}catch(e){throw new Error('ffmpeg : '+(e.message||e));}const data=await ffmpeg.readFile('out.mp4');const bytes=data instanceof Uint8Array?data:new Uint8Array(data);if(!bytes||bytes.length<2048)throw new Error('MP4 vide');try{for(const f of written)await ffmpeg.deleteFile(f).catch(()=>{});await ffmpeg.deleteFile('list.txt').catch(()=>{});await ffmpeg.deleteFile('out.mp4').catch(()=>{});}catch(e){}return new Blob([bytes],{type:'video/mp4'});}
 async function assembleScene(bid){const b=P.boards.find(x=>x.id===bid);if(!b)return;if(!lock('asm:'+bid))return toast('Assemblage déjà en cours');try{showAsmStatus('Scène '+bid,0,'');const blob=await assembleList(b.panels);const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='xenoscope_'+safeName(bid)+'.mp4';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);showAsmStatus('Terminé',100,fmtSize(blob.size));toast('🎬 Scène '+bid+' ('+fmtSize(blob.size)+')');hideAsmStatus(5000);}catch(e){log('er','Assemblage : '+e.message);toast('❌ '+e.message);showAsmStatus('Échec',0,sanLog(e.message));hideAsmStatus(8000);}finally{unlock('asm:'+bid);}}
 async function assembleAll(){if(!lock('asm:all'))return toast('Assemblage déjà en cours');try{const panels=[];for(const b of P.boards)for(const p of b.panels)panels.push(p);if(!panels.length)return toast('Aucune case');showAsmStatus('Film complet',0,'');const blob=await assembleList(panels);const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='xenoscope_full_'+P.id+'.mp4';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),120000);showAsmStatus('Terminé',100,fmtSize(blob.size));toast('🎬 Film complet ('+fmtSize(blob.size)+')');hideAsmStatus(6000);}catch(e){log('er','Assemblage : '+e.message);toast('❌ '+e.message);showAsmStatus('Échec',0,sanLog(e.message));hideAsmStatus(8000);}finally{unlock('asm:all');}}
 function triggerDownloadUrl(url,filename){try{const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();return true;}catch(e){log('er','Téléchargement échoué');return false;}}
@@ -327,8 +315,8 @@ async function dlZip(files,zipName){if(typeof JSZip==='undefined')return toast('
 async function zipChar(cid){const c=findChar(cid);if(!c)return;const files=[];for(const v of c.views){if(v.img&&v.img.assetId){const b=await getAssetBlob(v.img.assetId);if(b)files.push({name:charFilename(cid,v.id),blob:b});}}if(!files.length)return toast('Aucune image');dlZip(files,'personnage_'+safeName(cid)+'.zip');}
 async function zipBoard(bid){const b=P.boards.find(x=>x.id===bid);if(!b)return;const files=await filesFromPanels(b.panels);if(!files.length)return toast('Aucune image');dlZip(files,'scene_'+safeName(bid)+'.zip');}
 async function zipAll(){const all=[];for(const c of P.characters){for(const v of c.views){if(v.img&&v.img.assetId){const b=await getAssetBlob(v.img.assetId);if(b)all.push({name:'personnages/'+charFilename(c.id,v.id),blob:b});}}}for(const b of P.boards)for(const p of b.panels){if(p.img&&p.img.assetId){const blob=await getAssetBlob(p.img.assetId);if(blob)all.push({name:'storyboard/'+panelFilename(p.id),blob:blob});}}if(!all.length)return toast('Aucune image');dlZip(all,'xenoscope_images_'+P.id+'.zip');}
-async function exportProjectFull(){toast('⏳ Sauvegarde…');try{const zip=new JSZip();const meta={version:9,kind:'xenoscope-full',created:Date.now(),project:JSON.parse(JSON.stringify(P))};for(const c of meta.project.characters||[])for(const v of c.views||[]){if(v.img&&v.img.assetId){v.img._ref='assets/'+v.img.assetId+'.jpg';}}for(const b of meta.project.boards||[])for(const p of b.panels||[]){if(p.img&&p.img.assetId){p.img._ref='assets/'+p.img.assetId+'.jpg';}}zip.file('project.json',JSON.stringify(meta,null,2));const assetIds=new Set();for(const c of P.characters||[])for(const v of c.views||[])if(v.img&&v.img.assetId)assetIds.add(v.img.assetId);for(const b of P.boards||[])for(const p of b.panels||[])if(p.img&&p.img.assetId)assetIds.add(p.img.assetId);let n=0;for(const id of assetIds){const blob=await getAssetBlob(id);if(blob){zip.file('assets/'+id+'.jpg',blob);n++;}}const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:1}});const url=URL.createObjectURL(blob);triggerDownloadUrl(url,'xenoscope_save_'+P.id+'.zip');setTimeout(()=>URL.revokeObjectURL(url),60000);log('ok','Sauvegarde · '+n+' assets');toast('💾 Sauvegarde exportée ('+fmtSize(blob.size)+')');}catch(e){log('er','Export : '+e.message);toast('❌ '+e.message);}}
-function importProjectFull(file){const fr=new FileReader();fr.onload=async()=>{try{if(typeof JSZip==='undefined')throw new Error('JSZip non chargé');const zip=await JSZip.loadAsync(fr.result);const metaFile=zip.file('project.json');if(!metaFile)throw new Error('project.json absent');const meta=JSON.parse(await metaFile.async('string'));if(!meta.project)throw new Error('Format invalide');const proj=meta.project;const assetMap=new Map();const assetFiles=Object.keys(zip.files).filter(n=>n.startsWith('assets/')&&!zip.files[n].dir);for(const path of assetFiles){const oldId=path.replace('assets/','').replace('.jpg','').replace('.png','').replace('.bin','').replace('.json','').replace('.txt','');let blob=null;try{blob=await zip.files[path].async('blob');}catch(e){}if(!blob){try{const txt=await zip.files[path].async('string');if(txt&&txt.indexOf('data:')===0){const i=txt.indexOf(',');const b64=txt.slice(i+1);const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i2=0;i2<bin.length;i2++)arr[i2]=bin.charCodeAt(i2);blob=new Blob([arr],{type:'image/jpeg'});}}catch(e){}}if(blob){const newId='asset_'+uid()+Date.now().toString(36)+Math.random().toString(36).slice(2,5);const bytes=await blobToBytes(blob);await dbPut('assets',{id:newId,bytes,mime:blob.type||'image/jpeg',size:bytes.length,created:Date.now(),tag:'import'});assetMap.set(oldId,newId);}}for(const c of proj.characters||[])for(const v of c.views||[]){if(v.img&&v.img._ref){const oldId=v.img._ref.replace('assets/','').replace('.jpg','').replace('.png','').replace('.bin','').replace('.json','').replace('.txt','');const newId=assetMap.get(oldId);if(newId)v.img={assetId:newId,size:0,created:Date.now()};else v.img=null;}}for(const b of proj.boards||[])for(const p of b.panels||[]){if(p.img&&p.img._ref){const oldId=p.img._ref.replace('assets/','').replace('.jpg','').replace('.png','').replace('.bin','').replace('.json','').replace('.txt','');const newId=assetMap.get(oldId);if(newId)p.img={assetId:newId,size:0,created:Date.now()};else p.img=null;}}const normalized=normalizeProject(proj);setP(normalized);page=1;refresh();toast('✓ Projet restauré · '+assetMap.size+' image(s)');}catch(e){log('er','Import : '+e.message);toast('❌ '+e.message);}};fr.onerror=()=>toast('❌ Lecture impossible');fr.readAsArrayBuffer(file);}
+async function exportProjectFull(){toast('⏳ Sauvegarde…');try{const zip=new JSZip();const meta={version:10,kind:'xenoscope-full',created:Date.now(),project:JSON.parse(JSON.stringify(P))};for(const c of meta.project.characters||[])for(const v of c.views||[]){if(v.img&&v.img.assetId){v.img._ref='assets/'+v.img.assetId+'.bin';}}for(const b of meta.project.boards||[])for(const p of b.panels||[]){if(p.img&&p.img.assetId){p.img._ref='assets/'+p.img.assetId+'.bin';}}zip.file('project.json',JSON.stringify(meta,null,2));const assetIds=new Set();for(const c of P.characters||[])for(const v of c.views||[])if(v.img&&v.img.assetId)assetIds.add(v.img.assetId);for(const b of P.boards||[])for(const p of b.panels||[])if(p.img&&p.img.assetId)assetIds.add(p.img.assetId);let n=0;for(const id of assetIds){const blob=await getAssetBlob(id);if(blob){zip.file('assets/'+id+'.bin',blob);n++;}}const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:1}});const url=URL.createObjectURL(blob);triggerDownloadUrl(url,'xenoscope_save_'+P.id+'.zip');setTimeout(()=>URL.revokeObjectURL(url),60000);log('ok','Sauvegarde · '+n+' assets');toast('💾 Sauvegarde exportée ('+fmtSize(blob.size)+')');}catch(e){log('er','Export : '+e.message);toast('❌ '+e.message);}}
+function importProjectFull(file){const fr=new FileReader();fr.onload=async()=>{try{if(typeof JSZip==='undefined')throw new Error('JSZip non chargé');const zip=await JSZip.loadAsync(fr.result);const metaFile=zip.file('project.json');if(!metaFile)throw new Error('project.json absent');const meta=JSON.parse(await metaFile.async('string'));if(!meta.project)throw new Error('Format invalide');const proj=meta.project;const assetMap=new Map();const assetFiles=Object.keys(zip.files).filter(n=>n.startsWith('assets/')&&!zip.files[n].dir);for(const path of assetFiles){const oldId=path.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');let blob=null;try{blob=await zip.files[path].async('blob');}catch(e){}if(!blob){try{const txt=await zip.files[path].async('string');if(txt&&txt.indexOf('data:')===0){const i=txt.indexOf(',');const b64=txt.slice(i+1);const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i2=0;i2<bin.length;i2++)arr[i2]=bin.charCodeAt(i2);blob=new Blob([arr],{type:'image/jpeg'});}}catch(e){}}if(blob){const newId='asset_'+uid()+Date.now().toString(36)+Math.random().toString(36).slice(2,5);const bytes=await blobToBytes(blob);await dbPut('assets',{id:newId,bytes,mime:blob.type||'image/png',size:bytes.length,created:Date.now(),tag:'import'});assetMap.set(oldId,newId);}}for(const c of proj.characters||[])for(const v of c.views||[]){if(v.img&&v.img._ref){const oldId=v.img._ref.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');const newId=assetMap.get(oldId);if(newId)v.img={assetId:newId,size:0,created:Date.now()};else v.img=null;}}for(const b of proj.boards||[])for(const p of b.panels||[]){if(p.img&&p.img._ref){const oldId=p.img._ref.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');const newId=assetMap.get(oldId);if(newId)p.img={assetId:newId,size:0,created:Date.now()};else p.img=null;}}const normalized=normalizeProject(proj);setP(normalized);page=1;refresh();toast('✓ Projet restauré · '+assetMap.size+' image(s)');}catch(e){log('er','Import : '+e.message);toast('❌ '+e.message);}};fr.onerror=()=>toast('❌ Lecture impossible');fr.readAsArrayBuffer(file);}
 async function exportProjectMeta(){const clean=JSON.parse(JSON.stringify(P));for(const c of clean.characters||[])for(const v of c.views||[]){if(v.img){v.img={assetId:v.img.assetId||null,note:'médias non intégrés'};}}for(const b of clean.boards||[])for(const p of b.panels||[]){if(p.img)p.img={assetId:p.img.assetId||null,note:'médias non intégrés'};}const json=JSON.stringify(clean,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);triggerDownloadUrl(url,'xenoscope_meta_'+P.id+'.json');setTimeout(()=>URL.revokeObjectURL(url),10000);toast('JSON exporté');}
 
 const guide=(h,c)=>'<div class="guide '+(c||'')+'"><div>'+h+'</div></div>';
@@ -344,7 +332,6 @@ function charCard(c){const done=c.views.filter(v=>v.img&&v.img.assetId).length;r
 function panelCard(board,panel,idx){const isP=(idx===0&&board.id==='S01');const has=!!panel.img;const busy=panel.busy||panel.st==='running';const inQ=panel.st==='queued';return '<div class="cd panel'+(isP?' principal':'')+'">'+'<div class="lab">'+esc(panel.id)+' · '+esc(board.title)+' '+panelStateBadge(panel)+' '+imgStateBadge(panel)+'</div>'+imBox(panel)+'<textarea data-paneldesc="'+panel.id+'" rows="2">'+esc(panel.desc)+'</textarea>'+'<div class="info"><b>Décor</b> '+esc(panel.decor)+' · <b>Cadrage</b> '+esc(panel.framing)+' · <b>Action</b> '+esc(panel.action)+'</div>'+'<textarea data-panelimgprompt="'+panel.id+'" rows="2">'+esc(panel.imgPrompt)+'</textarea>'+'<div class="rw"><span class="lab">Durée : '+panel.duration+'s</span>'+'<button class="sm ghost" data-a="panel-dur" data-id="'+panel.id+'" data-d="3">3s</button>'+'<button class="sm ghost" data-a="panel-dur" data-id="'+panel.id+'" data-d="5">5s</button>'+'<button class="sm ghost" data-a="panel-dur" data-id="'+panel.id+'" data-d="8">8s</button>'+'<button class="sm ghost" data-a="panel-dur" data-id="'+panel.id+'" data-d="10">10s</button>'+'<button class="sm ghost" data-a="panel-dur" data-id="'+panel.id+'" data-d="12">12s</button></div>'+'<div class="rw"><button class="sm ghost" data-a="panel-chars" data-id="'+panel.id+'">👥 ('+panel.chars.length+')</button></div>'+'<div class="rw">'+btn('panel-img','↻ Image','sm','data-id="'+panel.id+'" '+(busy?'disabled':''))+(busy?btn('abort','■','sm ghost','data-key="panel:'+panel.id+'"'):'')+btn('panel-queue','+ File','sm ghost','data-id="'+panel.id+'" '+(inQ?'disabled':'') )+btn('panel-dl','⬇ Image','sm ghost','data-id="'+panel.id+'" '+(has?'':'disabled'))+'<label class="sm btn ghost" style="cursor:pointer">⬆<input type="file" accept="image/*" hidden data-uppanel="'+panel.id+'"></label>'+btn('panel-del','🗑','sm ghost','data-id="'+panel.id+'"')+'</div>'+(panel.err?'<div class="lab" style="color:var(--er);margin-top:4px">'+esc(panel.err)+'</div>':'')+'</div>';}
 function boardCard(board){const panels=board.panels||[];const done=panels.filter(p=>p.img&&p.img.assetId).length;const total=panels.length;const allDone=done===total&&total>0;return '<div class="cd"><h3>'+esc(board.id)+' — '+esc(board.title)+' <span class="badge">'+total+'</span><span class="badge ok">'+done+' img</span></h3>'+'<input type="text" data-boardtitle="'+board.id+'" value="'+esc(board.title)+'">'+'<div class="grid" style="margin-top:10px">'+panels.map((p,i)=>panelCard(board,p,i)).join('')+'</div>'+'<div class="rw" style="margin-top:10px">'+btn('panel-add','+ Case','sm','data-bid="'+board.id+'"')+btn('board-zip','⬇ ZIP','sm gold','data-bid="'+board.id+'" '+(done>0?'':'disabled'))+btn('board-asm','🎬 Scène','sm gold','data-bid="'+board.id+'" '+(allDone?'':'disabled'))+btn('board-del','🗑 Planche','sm ghost','data-bid="'+board.id+'"')+'</div>'+'</div>';}
 
-/* Injection images : Blob frais -> ObjectURL -> <img>, révocation après load */
 async function hydrateImages(){
   const boxes=document.querySelectorAll('.im[data-aid]');
   for(const el of boxes){
@@ -356,22 +343,11 @@ async function hydrateImages(){
       const url=URL.createObjectURL(blob);
       const im=new Image();
       im.alt='';
-      im.onload=()=>{
-        try{URL.revokeObjectURL(url);}catch(e){}
-        el.innerHTML='';
-        el.appendChild(im);
-      };
-      im.onerror=()=>{
-        try{URL.revokeObjectURL(url);}catch(e){}
-        el.innerHTML='<span style="color:var(--er)">affichage échoué</span>';
-        log('er','Affichage '+aid+' échoué');
-      };
+      im.onload=()=>{try{URL.revokeObjectURL(url);}catch(e){}el.innerHTML='';el.appendChild(im);};
+      im.onerror=()=>{try{URL.revokeObjectURL(url);}catch(e){}el.innerHTML='<span style="color:var(--er)">affichage échoué</span>';log('er','Affichage '+aid+' échoué (blob type='+blob.type+', taille='+blob.size+')');};
       el.innerHTML='<span>chargement…</span>';
       im.src=url;
-    }catch(e){
-      el.innerHTML='<span style="color:var(--er)">erreur</span>';
-      log('er','hydrate '+aid+' : '+e.message);
-    }
+    }catch(e){el.innerHTML='<span style="color:var(--er)">erreur</span>';log('er','hydrate '+aid+' : '+e.message);}
   }
 }
 
