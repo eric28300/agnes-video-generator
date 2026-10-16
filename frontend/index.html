@@ -1,683 +1,3 @@
-<!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Xenoscope Studio · Production</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-<script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
-<style>
-:root{--bg:#070711;--p:#12121e;--ink:#e8e8f5;--dim:#7a7a94;--ln:#23233a;--a:#7c5cff;--b:#ff5a1f;--ok:#12b76a;--er:#e5383b;--gold:#ffb84d;--m:'Share Tech Mono',ui-monospace,monospace}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font:16px/1.5 Rajdhani,system-ui,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;padding-bottom:70px}
-body::before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse at top,#1a1a3e 0%,#070711 60%)}
-header{position:sticky;top:0;z-index:20;background:rgba(7,7,17,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--ln);padding:10px 18px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
-.logo{font:800 20px Orbitron;letter-spacing:.12em}.logo b{color:var(--a)}.logo i{display:block;font:10px var(--m);letter-spacing:.35em;color:var(--dim);font-style:normal}
-#steps{display:flex;gap:4px;flex-wrap:wrap}
-.st{font:11px var(--m);letter-spacing:.06em;text-transform:uppercase;padding:5px 9px;border:1px solid var(--ln);background:#12121e;color:var(--dim);cursor:pointer}
-.st.ok{color:var(--ink);border-color:var(--a)}.st.on{background:var(--a);color:#fff;border-color:var(--a)}.st:disabled{opacity:.4;cursor:not-allowed}
-.hb{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-main{max-width:1200px;margin:0 auto;padding:22px 16px}
-.hero{background:var(--p);border:1px solid var(--ln);padding:22px;margin-bottom:16px;border-radius:8px}
-.lab{font:11px var(--m);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-h2{font:600 26px Orbitron;letter-spacing:.04em;margin:6px 0 8px}h2 b{color:var(--a)}h3{font:600 15px Orbitron;letter-spacing:.06em;margin:16px 0 8px}
-.guide{display:flex;gap:12px;align-items:center;border:1px solid var(--a);background:rgba(124,92,255,.08);padding:12px 14px;margin:10px 0 16px;border-radius:6px;font-size:15px}
-.guide.go{border-color:var(--ok);background:rgba(18,183,106,.1)}.guide.er{border-color:var(--er);background:rgba(229,56,59,.1)}.guide.wt{border-color:var(--b);background:rgba(255,90,31,.08)}.guide.gd{border-color:var(--gold);background:rgba(255,184,77,.08)}
-textarea,input[type=text],input[type=password],input[type=number],select{width:100%;font:13px var(--m);padding:10px;border:1px solid var(--ln);background:#0a0a14;color:var(--ink);outline:0;border-radius:5px}
-textarea:focus,input:focus,select:focus{border-color:var(--a)}textarea{resize:vertical;min-height:70px;margin:4px 0}
-label.f{display:block;margin:8px 0}label.f span{display:block;margin-bottom:4px}
-button,.btn{font:600 12px var(--m);letter-spacing:.1em;text-transform:uppercase;padding:10px 16px;border:1px solid var(--ink);background:#12121e;color:var(--ink);cursor:pointer;border-radius:5px;display:inline-block}
-button:hover:not(:disabled),.btn:hover{background:var(--a);color:#fff;border-color:var(--a)}button:disabled{opacity:.35;cursor:not-allowed}
-.big{background:var(--a);border-color:var(--a);color:#fff;padding:14px 26px;font-size:14px;letter-spacing:.16em}
-.big:hover:not(:disabled){background:#6a4ce6;border-color:#6a4ce6}
-.sm{padding:6px 11px;font-size:10px}
-.gold{background:var(--gold);border-color:var(--gold);color:#000}.gold:hover:not(:disabled){background:#e5a13a;border-color:#e5a13a}
-.ghost{background:transparent;border-color:var(--ln);color:var(--dim)}.ghost:hover:not(:disabled){background:var(--ln);color:var(--ink);border-color:var(--ln)}
-.ft{display:flex;justify-content:space-between;gap:10px;margin-top:20px;flex-wrap:wrap;align-items:center}
-.chips{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}.chip{font:11px var(--m);padding:3px 8px;border:1px solid var(--ok);color:var(--ok);border-radius:20px}.chip.off{border-color:var(--er);color:var(--er)}.chip.warn{border-color:var(--b);color:var(--b)}.chip.neutral{border-color:var(--ln);color:var(--dim)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.grid6{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
-.cd{border:1px solid var(--ln);background:#12121e;padding:12px;position:relative;border-radius:8px}
-.cd.char{border-color:#2a2a4a;background:linear-gradient(180deg,#12121e 0%,#16162a 100%)}
-.cd.panel.principal{border-color:var(--gold)}
-.im{position:relative;background:#0a0a14;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:8px;font:11px var(--m);color:var(--dim);border-radius:6px;min-height:100px}
-.im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.sp,.sp2{border:2px solid var(--a);border-top-color:transparent;border-radius:50%;animation:r 1s linear infinite}.sp{position:absolute;width:26px;height:26px;z-index:2}.sp2{display:inline-block;width:14px;height:14px;flex:none}@keyframes r{to{transform:rotate(360deg)}}
-.rw{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;align-items:center}
-.info{background:#0a0a14;border:1px solid var(--ln);border-radius:6px;padding:10px 12px;font:11px var(--m);color:var(--dim);line-height:1.6;margin:6px 0}
-.info b{color:var(--a)}
-.badge{display:inline-block;font:10px var(--m);padding:2px 6px;border-radius:3px;border:1px solid var(--ln);color:var(--dim);margin-left:6px}
-.badge.gold{border-color:var(--gold);color:var(--gold)}.badge.ok{border-color:var(--ok);color:var(--ok)}.badge.er{border-color:var(--er);color:var(--er)}.badge.warn{border-color:var(--b);color:var(--b)}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:80;display:none;align-items:center;justify-content:center;padding:16px}
-.modal.on{display:flex}
-.modal-inner{background:#12121e;max-width:560px;width:100%;padding:22px;border:1px solid var(--a);border-radius:8px;max-height:85vh;overflow:auto}
-.kv{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--ln);font:12px var(--m);color:var(--dim)}
-.kv b{color:var(--ink)}
-#con{position:fixed;left:0;right:0;bottom:0;height:40vh;z-index:50;background:#06060e;color:#b0a5ff;transform:translateY(100%);transition:transform .25s;display:flex;flex-direction:column;border-top:1px solid var(--ln)}#con.on{transform:none}
-#lb{flex:1;overflow:auto;padding:8px 12px;font:12px/1.5 var(--m)}.lg.er{color:#ff8a8a}.lg.wr{color:#ffc477}.lg.ok{color:#7dffb5}.lg.in{color:#b0a5ff}
-#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:6px;align-items:center}#toast div{background:#12121e;color:#fff;font:12px var(--m);padding:8px 14px;border:1px solid var(--a);border-radius:5px}
-.key-row{display:flex;gap:8px;align-items:stretch}.key-row input{flex:1}
-.progress-bar{height:6px;background:var(--ln);border-radius:3px;overflow:hidden;margin-top:6px}
-.progress-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--a),var(--gold));width:0;transition:width .4s}
-.assembly-zone{border:1px dashed var(--gold);border-radius:8px;padding:14px;margin-top:14px}
-.q-banner{position:sticky;top:60px;z-index:15;background:rgba(124,92,255,.15);border:1px solid var(--a);padding:10px 14px;border-radius:6px;margin-bottom:12px;display:none;align-items:center;gap:12px;flex-wrap:wrap}
-.q-banner.on{display:flex}
-.q-banner b{color:var(--a)}
-@media(max-width:700px){h2{font-size:20px}.st{padding:4px 6px;font-size:9px}.grid6{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
-</style></head><body>
-<header>
-  <div class="logo">XENOSCOPE<b> STUDIO</b><i>OBSERVATION · FAMILLE XÉNO · TERRE</i></div>
-  <nav id="steps"></nav>
-  <div class="hb">
-    <span class="chip neutral" id="saveChip">💾 —</span>
-    <span class="chip neutral" id="storageChip">💽 —</span>
-    <span class="chip" id="qchip"></span>
-    <button class="sm" data-a="sess">Projets</button>
-    <button class="sm" data-a="con">Journal</button>
-  </div>
-</header>
-<main id="main"></main>
-<div class="q-banner" id="qBanner"></div>
-<div id="con"><div style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #1a1a2a;font:12px var(--m)"><span>JOURNAL TECHNIQUE</span><button class="sm" data-a="con" style="color:#b0a5ff;border-color:#23233a">✕</button></div><div id="lb"></div></div>
-<div id="toast"></div>
-<div id="modal" class="modal"><div class="modal-inner" id="modalInner"></div></div>
-
-<script>
-'use strict';
-
-/* ═════════════════════════════════════════════════════════════════════
-   CONFIG
-   ═════════════════════════════════════════════════════════════════════ */
-const AGNES_BASE='https://apihub.agnes-ai.com';
-const AGNES_API=AGNES_BASE+'/v1';
-const DEFAULT_PROXY='https://agnes-proxy-phi.vercel.app/api/proxy?url=';
-const IMG='agnes-image-2.5-flash';
-const RPM={free:{img:10},plan:{img:100}};
-const STEPS=['Clé API','Personnages','Storyboard','Production'];
-const MAX_REF=4;
-const SCENE_STYLE='cinematic sci-fi, deep blue-violet palette with golden accents, volumetric realistic lighting, ultra-detailed, photorealistic, 8K, contemplative atmosphere';
-const ASM_W=1080, ASM_H=1920, ASM_FPS=30;
-const MAX_BATCH=30;
-const RETRY_BASE_MS=8000;
-const MAX_RETRIES=4;
-const ERR_FR={400:'Requête refusée (paramètres invalides).',401:'Clé API invalide ou expirée.',402:'Compte sans crédit suffisant.',403:'Accès refusé.',404:'Ressource introuvable.',408:'Délai dépassé.',429:'Trop de requêtes : attends une minute.',500:'Erreur serveur Agnes.',502:'Passerelle Agnes indisponible.',503:'Serveur Agnes saturé.',504:'Délai serveur dépassé.'};
-const sanLog=s=>{if(!s)return '';let out=String(s);out=out.replace(/sk-[A-Za-z0-9_\-]{6,}/g,'sk-***');out=out.replace(/Bearer\s+[A-Za-z0-9_\-\.]{6,}/gi,'Bearer ***');return out.slice(0,180);};
-
-/* ═════════════════════════════════════════════════════════════════════
-   PERSONNAGES + STORYBOARD
-   ═════════════════════════════════════════════════════════════════════ */
-const CHAR_DEFAULTS=[
-  {id:'pere',name:'Le Père',bible:'the father: adult male humanoid alien, subtle blue-grey skin, luminous amber eyes, dark garments with gold trim, noble and calm posture',desc:'Extraterrestre humanoïde adulte mâle, peau bleu-gris subtile, yeux ambrés lumineux, traits extraterrestres réalistes mais élégants, vêtements sombres avec liserés dorés, posture noble et calme'},
-  {id:'mere',name:'La Mère',bible:'the mother: adult female humanoid alien, subtle blue-grey skin, luminous amber eyes, dark garments with gold trim, attentive and caring expression',desc:'Extraterrestre humanoïde adulte femelle, peau bleu-gris subtile, yeux ambrés lumineux, traits extraterrestres réalistes mais élégants, vêtements sombres avec liserés dorés, expression attentive et bienveillante'},
-  {id:'enfant',name:'L\'Enfant',bible:'the child: young humanoid alien, subtle blue-grey skin, very luminous amber eyes, dark garments with gold trim, curiosity and wonder',desc:'Extraterrestre humanoïde enfant, peau bleu-gris subtile, yeux ambrés très lumineux, traits extraterrestres réalistes, vêtements sombres avec liserés dorés, curiosité et émerveillement'}
-];
-const VIEW_DEFS=[
-  {id:'face',label:'Face',en:'front view head and shoulders portrait'},
-  {id:'tq',label:'Trois-quarts',en:'three-quarter view head and shoulders portrait'},
-  {id:'profil',label:'Profil',en:'side profile view head and shoulders'},
-  {id:'dos',label:'Dos',en:'back view head and shoulders'},
-  {id:'pied_face',label:'Pied face',en:'full body standing pose, front view'},
-  {id:'pied_tq',label:'Pied trois-quarts',en:'full body standing pose, three-quarter view'}
-];
-const BOARDS_DEFAULTS=[
-  {id:'S01',title:'La Terre depuis l\'espace',panels:[
-    {id:'S01_P01',desc:'Vue large de la Terre depuis l\'espace',chars:[],decor:'Espace profond',framing:'Plan large fixe',action:'Rotation très lente',imgPrompt:'Cinematic wide shot of planet Earth from deep space, deep blue oceans, visible continents, glowing atmosphere, starry background',animPrompt:'slow zoom in',duration:5},
-    {id:'S01_P02',desc:'Approche vers l\'atmosphère, nuages en mouvement',chars:[],decor:'Espace proche',framing:'Zoom avant lent',action:'La caméra avance',imgPrompt:'Cinematic close approach to Earth atmosphere, white clouds drifting slowly, blue oceans below, sunlight glinting on water',animPrompt:'slow zoom in',duration:5},
-    {id:'S01_P03',desc:'Recul, silhouette sombre au premier plan',chars:[],decor:'Espace',framing:'Travelling arrière',action:'Révélation partielle',imgPrompt:'Cinematic pull back from Earth, dark silhouette barely visible in foreground, deep space, stars, mysterious mood',animPrompt:'slow zoom out',duration:5}
-  ]},
-  {id:'S02',title:'L\'appareil d\'observation',panels:[
-    {id:'S02_P01',desc:'Plan large du jardin extraterrestre',chars:[],decor:'Jardin extraterrestre',framing:'Plan large',action:'Présentation du décor',imgPrompt:'Cinematic wide shot of an alien garden at dusk, strange bioluminescent vegetation, a cylindrical observation device at the center, blue-violet tones with golden accents',animPrompt:'slow pan right',duration:6},
-    {id:'S02_P02',desc:'Gros plan de l\'appareil, symboles pulsant',chars:[],decor:'Appareil avancé',framing:'Macro',action:'Symboles pulsent',imgPrompt:'Extreme close-up of an advanced alien observation device, glowing blue and gold symbols pulsing on metallic and crystalline surfaces',animPrompt:'slow zoom in',duration:5},
-    {id:'S02_P03',desc:'Le dôme s\'ouvre, sphère de verre avec la Terre',chars:[],decor:'Appareil ouvert',framing:'Plan rapproché',action:'Ouverture mécanique',imgPrompt:'Cinematic shot of an alien device opening, revealing a glass sphere inside showing a miniature Earth, glowing edge lights',animPrompt:'slow zoom in',duration:6},
-    {id:'S02_P04',desc:'Reflet de la Terre dans l\'appareil',chars:[],decor:'Appareil',framing:'Insert',action:'Reflet qui tourne',imgPrompt:'Insert shot, reflection of Earth in the polished crystalline surface of an alien device, blue and gold light',animPrompt:'slow pan left',duration:5}
-  ]},
-  {id:'S03',title:'La famille extraterrestre',panels:[
-    {id:'S03_P01',desc:'Le père entre dans le cadre',chars:['pere'],decor:'Jardin extraterrestre',framing:'Plan moyen',action:'Entrée du père',imgPrompt:'Cinematic medium shot, alien father entering frame, looking up at observation device, alien garden',animPrompt:'slow zoom in',duration:6},
-    {id:'S03_P02',desc:'La mère rejoint le père',chars:['pere','mere'],decor:'Jardin extraterrestre',framing:'Plan moyen',action:'Arrivée de la mère',imgPrompt:'Cinematic medium shot, alien mother joining the father near the observation device',animPrompt:'slow zoom in',duration:6},
-    {id:'S03_P03',desc:'L\'enfant se glisse entre ses parents',chars:['pere','mere','enfant'],decor:'Jardin extraterrestre',framing:'Plan moyen',action:'Entrée de l\'enfant',imgPrompt:'Cinematic medium shot, alien child stepping between parents, curious expression, glowing observation device nearby',animPrompt:'slow zoom in',duration:6},
-    {id:'S03_P04',desc:'Plan large des trois devant l\'appareil',chars:['pere','mere','enfant'],decor:'Jardin extraterrestre',framing:'Plan large',action:'Pose contemplative',imgPrompt:'Cinematic wide shot, alien family of three standing before a glowing observation device showing Earth',animPrompt:'slow zoom out',duration:7}
-  ]},
-  {id:'S04',title:'Observation des humains',panels:[
-    {id:'S04_P01',desc:'Silhouettes humaines dans la sphère',chars:[],decor:'Écran de la sphère',framing:'Insert',action:'Silhouettes qui bougent',imgPrompt:'Insert shot of an alien glass sphere showing a holographic miniature of human city life, tiny silhouettes moving',animPrompt:'slow zoom in',duration:5},
-    {id:'S04_P02',desc:'Réaction du père, sourcils froncés',chars:['pere'],decor:'Jardin extraterrestre',framing:'Gros plan visage',action:'Réaction silencieuse',imgPrompt:'Close-up of alien father face, subtle frown of curiosity, glowing device reflected in amber eyes',animPrompt:'slow zoom in',duration:5},
-    {id:'S04_P03',desc:'La mère pose la main sur l\'épaule du père',chars:['pere','mere'],decor:'Jardin extraterrestre',framing:'Plan rapproché',action:'Geste de réconfort',imgPrompt:'Cinematic close-up, alien mother\'s hand gently resting on father\'s shoulder, both watching the glowing observation sphere',animPrompt:'slow zoom in',duration:6},
-    {id:'S04_P04',desc:'L\'enfant pointe la sphère',chars:['enfant'],decor:'Jardin extraterrestre',framing:'Plan moyen',action:'Geste de l\'enfant',imgPrompt:'Cinematic medium shot, alien child pointing at the glowing observation sphere, curious expression',animPrompt:'slow pan right',duration:5},
-    {id:'S04_P05',desc:'Échange de regards entre les trois',chars:['pere','mere','enfant'],decor:'Jardin extraterrestre',framing:'Plan serré',action:'Regards croisés',imgPrompt:'Cinematic tight shot of an alien family of three exchanging silent looks, observation device glowing softly behind',animPrompt:'slow zoom out',duration:7}
-  ]}
-];
-
-/* ═════════════════════════════════════════════════════════════════════
-   UTILITAIRES
-   ═════════════════════════════════════════════════════════════════════ */
-const $=s=>document.querySelector(s);
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const uid=()=>Math.random().toString(36).slice(2,9);
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const san=t=>String(t==null?'':t).replace(/[‘’]/g,"'").replace(/[“”«»]/g,'"').replace(/[–—]/g,'-').replace(/…/g,'...').replace(/[\u00a0\u202f]/g,' ');
-const safeName=s=>String(s||'').toLowerCase().replace(/[^a-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'');
-const frErr=(code,msg)=>(ERR_FR[code]||('Erreur HTTP '+code))+(msg?(' — '+sanLog(String(msg)).slice(0,100)):'');
-const fmtSize=n=>{if(!n)return '0 o';if(n<1024)return n+' o';if(n<1048576)return (n/1024).toFixed(1)+' Ko';if(n<1073741824)return (n/1048576).toFixed(1)+' Mo';return (n/1073741824).toFixed(2)+' Go';};
-
-let db=null,P=null,page=0,F=1,saveTimer=null,savePending=false;
-let PROXY=DEFAULT_PROXY;
-const KEYS={list:[],plan:'free',revealed:false};
-const AR=()=>((P&&P.ratio)||'9:16').replace(':','/');
-const mkKey=k=>({k,img:0,cool:0,bad:0,off:false});
-const LOCKS=new Set();
-const lock=id=>{if(LOCKS.has(id))return false;LOCKS.add(id);return true;};
-const unlock=id=>LOCKS.delete(id);
-const ABORTS=new Map();
-const registerAbort=id=>{const c=new AbortController();ABORTS.set(id,c);return c;};
-const clearAbort=id=>ABORTS.delete(id);
-const abortTask=id=>{const c=ABORTS.get(id);if(c&&!c.signal.aborted)c.abort();};
-const PX=u=>PROXY+encodeURIComponent(u);
-
-const QUEUE={running:false,abort:false,current:null};
-const ASSET_CACHE=new Map();
-
-/* ═════════════════════════════════════════════════════════════════════
-   INDEXEDDB
-   ═════════════════════════════════════════════════════════════════════ */
-function openDB(){
-  return new Promise((res,rej)=>{
-    const r=indexedDB.open('xenoscope_v3',1);
-    r.onerror=()=>rej(r.error);
-    r.onsuccess=()=>res(r.result);
-    r.onupgradeneeded=e=>{
-      const d=e.target.result;
-      if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id'});
-      if(!d.objectStoreNames.contains('assets'))d.createObjectStore('assets',{keyPath:'id'});
-      if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'});
-    };
-  });
-}
-const tx=(s,m,f)=>new Promise((res,rej)=>{
-  try{
-    const r=f(db.transaction(s,m).objectStore(s));
-    r.onsuccess=()=>res(r.result);
-    r.onerror=()=>rej(r.error);
-  }catch(e){rej(e);}
-});
-let mode='idb';
-const mem={projects:{},assets:{},config:{}};
-const lsK=(s,k)=>'xeno3_'+s+'_'+k;
-function fall(){if(mode==='idb'){mode='ls';log('wr','IndexedDB indisponible → localStorage (les images ne seront PAS persistées)');}}
-async function dbGet(s,k){
-  if(db&&mode==='idb'){try{return await tx(s,'readonly',o=>o.get(k));}catch(e){fall();}}
-  try{const v=localStorage.getItem(lsK(s,k));if(v!=null)return JSON.parse(v);}catch(e){}
-  return mem[s][k];
-}
-async function dbPut(s,v){
-  const k=v.key||v.id;mem[s][k]=v;
-  if(db&&mode==='idb'){try{return await tx(s,'readwrite',o=>o.put(v));}catch(e){fall();}}
-  if(s!=='assets'){
-    try{localStorage.setItem(lsK(s,k),JSON.stringify(v));return true;}catch(e){log('er','localStorage plein');return false;}
-  }
-  return false;
-}
-async function dbDel(s,k){
-  delete mem[s][k];
-  if(db&&mode==='idb'){try{return await tx(s,'readwrite',o=>o.delete(k));}catch(e){fall();}}
-  try{localStorage.removeItem(lsK(s,k));}catch(e){}
-}
-async function dbAll(s){
-  if(db&&mode==='idb'){try{return await tx(s,'readonly',o=>o.getAll());}catch(e){fall();}}
-  const o=Object.assign({},mem[s]);
-  if(s!=='assets'){
-    try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n&&n.startsWith(lsK(s,''))){const v=JSON.parse(localStorage.getItem(n));o[v.key||v.id]=v;}}}catch(e){}
-  }
-  return Object.values(o);
-}
-
-/* ═════════════════════════════════════════════════════════════════════
-   ASSETS
-   ═════════════════════════════════════════════════════════════════════ */
-async function saveAsset(blob,mime,tag){
-  const id='asset_'+uid()+Date.now().toString(36);
-  const rec={id,blob,mime:mime||blob.type||'image/png',size:blob.size||0,created:Date.now(),tag:tag||'gen'};
-  const ok=await dbPut('assets',rec);
-  if(!ok)throw new Error('Impossible d\'écrire l\'image dans IndexedDB');
-  const u=URL.createObjectURL(blob);
-  ASSET_CACHE.set(id,u);
-  return id;
-}
-async function getAssetBlob(id){
-  if(!id)return null;
-  const rec=await dbGet('assets',id);
-  return rec&&rec.blob?rec.blob:null;
-}
-async function loadAssetUrl(id){
-  if(!id)return null;
-  if(ASSET_CACHE.has(id))return ASSET_CACHE.get(id);
-  const b=await getAssetBlob(id);
-  if(!b)return null;
-  const u=URL.createObjectURL(b);
-  ASSET_CACHE.set(id,u);
-  return u;
-}
-async function deleteAsset(id){
-  if(!id)return;
-  if(ASSET_CACHE.has(id)){try{URL.revokeObjectURL(ASSET_CACHE.get(id));}catch(e){}ASSET_CACHE.delete(id);}
-  await dbDel('assets',id);
-}
-function releaseAssetCache(){
-  for(const u of ASSET_CACHE.values()){try{URL.revokeObjectURL(u);}catch(e){}}
-  ASSET_CACHE.clear();
-}
-
-/* ═════════════════════════════════════════════════════════════════════
-   INDICATEURS
-   ═════════════════════════════════════════════════════════════════════ */
-let saveState='idle';
-function setSaveState(s){
-  saveState=s;
-  const el=$('#saveChip');if(!el)return;
-  if(s==='idle'){el.textContent='💾 —';el.className='chip neutral';}
-  else if(s==='saving'){el.textContent='💾 sauvegarde…';el.className='chip warn';}
-  else if(s==='saved'){const t=new Date();el.textContent='💾 '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');el.className='chip';}
-  else if(s==='error'){el.textContent='💾 ERREUR';el.className='chip off';}
-}
-function log(l,m){
-  const d=document.createElement('div');d.className='lg '+l;
-  d.textContent=new Date().toLocaleTimeString('fr-FR')+'  '+sanLog(m);
-  const b=$('#lb');if(!b)return;
-  b.appendChild(d);while(b.children.length>500)b.firstChild.remove();
-  b.scrollTop=b.scrollHeight;
-}
-function toast(m){const d=document.createElement('div');d.textContent=m;$('#toast').appendChild(d);setTimeout(()=>d.remove(),4200);}
-
-function save(){
-  if(!P)return;
-  savePending=true;
-  setSaveState('saving');
-  clearTimeout(saveTimer);
-  saveTimer=setTimeout(flushSave,400);
-}
-async function flushSave(){
-  if(!P)return;
-  clearTimeout(saveTimer);savePending=false;
-  setSaveState('saving');
-  try{
-    P.upd=Date.now();
-    await dbPut('projects',P);
-    setSaveState('saved');
-    updateStorageChip();
-  }catch(e){
-    setSaveState('error');
-    log('er','sauvegarde : '+e.message);
-  }
-}
-async function updateStorageChip(){
-  const el=$('#storageChip');if(!el)return;
-  try{
-    if(!navigator.storage||!navigator.storage.estimate){el.textContent='💽 n/a';el.className='chip neutral';return;}
-    const est=await navigator.storage.estimate();
-    const used=est.usage||0,quota=est.quota||0;
-    if(!quota){el.textContent='💽 '+fmtSize(used);el.className='chip neutral';return;}
-    const pct=used/quota*100;
-    el.textContent='💽 '+fmtSize(used)+' / '+fmtSize(quota)+' ('+pct.toFixed(0)+'%)';
-    el.className='chip '+(pct>85?'off':pct>60?'warn':'');
-    if(pct>90)log('wr','⚠️ Stockage local presque plein ('+pct.toFixed(0)+'%) — exporte une sauvegarde ZIP');
-  }catch(e){el.textContent='💽 n/a';el.className='chip neutral';}
-}
-
-/* ═════════════════════════════════════════════════════════════════════
-   API AGNES (images uniquement)
-   ═════════════════════════════════════════════════════════════════════ */
-async function slot(){
-  for(;;){
-    let live=KEYS.list.filter(o=>!o.off);
-    if(!live.length&&KEYS.list.length){KEYS.list.forEach(o=>{o.off=false;o.bad=0;o.cool=0;});live=KEYS.list;}
-    if(!live.length)throw Object.assign(new Error('Aucune clé active'),{fatal:true});
-    const rpm=RPM[KEYS.plan].img||10;
-    const iv=60000/rpm*1.15*F,now=Date.now();
-    let best=null,bt=1e18;
-    for(const o of live){const t=Math.max(o.img||0,o.cool||0,now);if(t<bt){bt=t;best=o;}}
-    if(bt>now){await sleep(Math.min(bt-now,400));continue;}
-    if(best.cool>Date.now())continue;
-    best.img=now+iv;
-    return best;
-  }
-}
-async function callApi(url,body,signal,method){
-  method=method||'POST';
-  let lastErr=null;
-  for(let a=0;a<3;a++){
-    const o=await slot();
-    try{
-      const opt={method:method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+o.k}};
-      if(body&&method==='POST')opt.body=JSON.stringify(body);
-      if(signal)opt.signal=signal;
-      const r=await fetch(url,opt);
-      if(r.ok){o.bad=0;F=Math.max(1,F*0.97);return r;}
-      const t=await r.text().catch(()=>'');
-      log('er','HTTP '+r.status+' '+sanLog(t));
-      if(r.status===429){o.cool=Date.now()+(parseInt(r.headers.get('Retry-After'))||30)*1000;F=Math.min(4,F*1.5);lastErr=new Error(frErr(429));continue;}
-      if(r.status===401){o.bad++;if(o.bad>=2)o.off=true;lastErr=new Error(frErr(401));continue;}
-      if(r.status>=500){lastErr=new Error(frErr(r.status));await sleep(2500*Math.pow(2,a));continue;}
-      throw Object.assign(new Error(frErr(r.status,t)),{fatal:true});
-    }catch(e){
-      if(e.name==='AbortError')throw e;
-      if(e.fatal)throw e;
-      lastErr=e;await sleep(1500*(a+1));
-    }
-  }
-  throw lastErr||new Error('Échec réseau');
-}
-
-/* ═════════════════════════════════════════════════════════════════════
-   FETCH MÉDIA
-   ═════════════════════════════════════════════════════════════════════ */
-async function fetchAsBlob(url){
-  if(!url)return null;
-  if(url.indexOf('data:')===0){try{const r=await fetch(url);return await r.blob();}catch(e){return null;}}
-  try{const r=await fetch(url,{mode:'cors'});if(r.ok)return await r.blob();}catch(e){}
-  try{const r=await fetch(PX(url));if(r.ok)return await r.blob();}catch(e){}
-  return null;
-}
-async function fetchAsDataUrl(url){
-  const b=await fetchAsBlob(url);if(!b)return null;
-  return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(b);});
-}
-function blobToUint8(blob){return blob.arrayBuffer().then(b=>new Uint8Array(b));}
-function dataUrlToBlob(dataUrl){
-  const [meta,b64]=String(dataUrl).split(',');
-  const mime=(meta.match(/data:([^;]+)/)||[])[1]||'image/png';
-  const bin=atob(b64);
-  const bytes=new Uint8Array(bin.length);
-  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
-  return new Blob([bytes],{type:mime});
-}
-
-/* ═════════════════════════════════════════════════════════════════════
-   GÉNÉRATION D'IMAGE
-   ═════════════════════════════════════════════════════════════════════ */
-async function mkImg(prompt,refUris,ratio,signal){
-  const body={model:IMG,prompt:san(prompt),n:1,size:'1K',ratio:ratio||(P?P.ratio:'9:16'),extra_body:{response_format:'url'}};
-  if(refUris&&refUris.length)body.extra_body.image=refUris.filter(Boolean).slice(0,MAX_REF);
-  const r=await callApi(PX(AGNES_API+'/images/generations'),body,signal);
-  let d;
-  try{d=await r.json();}catch(e){throw new Error('Réponse JSON invalide d\'Agnes');}
-  const it=d.data&&d.data[0];
-  const remoteUrl=it&&it.url;
-  const b64=it&&it.b64_json;
-  if(!remoteUrl&&!b64)throw new Error('Aucune image reçue');
-  let blob=null;
-  if(b64){try{blob=dataUrlToBlob('data:image/png;base64,'+b64);}catch(e){}}
-  if(!blob&&remoteUrl)blob=await fetchAsBlob(remoteUrl);
-  if(!blob)throw new Error('Image générée mais non téléchargeable (CORS/proxy)');
-  const assetId=await saveAsset(blob,blob.type||'image/png','gen');
-  return {assetId,u:remoteUrl||null,size:blob.size||0,created:Date.now()};
-}
-
-async function migrateProjectAssets(){
-  if(!P)return 0;
-  let count=0;
-  const migrate=async(node)=>{
-    if(!node||!node.img||node.img.assetId)return;
-    const src=node.img.d||node.img.u;
-    if(!src)return;
-    try{
-      const blob=await fetchAsBlob(src);
-      if(!blob)return;
-      const id=await saveAsset(blob,blob.type||'image/png','migrate');
-      node.img={assetId:id,u:node.img.u||null,migratedAt:Date.now()};
-      count++;
-    }catch(e){}
-  };
-  for(const c of P.characters)for(const v of c.views)await migrate(v);
-  for(const b of P.boards)for(const p of b.panels)await migrate(p);
-  if(count){log('in',count+' image(s) migrée(s) vers le stockage binaire');await flushSave();}
-  return count;
-}
-
-/* ═════════════════════════════════════════════════════════════════════
-   PROMPTS
-   ═════════════════════════════════════════════════════════════════════ */
-function charViewPrompt(char,view){
-  if(view.prompt&&view.prompt.trim())return view.prompt;
-  const bible=char.bible?char.bible+'. ':(char.desc+'. ');
-  return `${bible}${view.en}. ${SCENE_STYLE}`;
-}
-function panelImgPrompt(panel){
-  const base=panel.imgPrompt&&panel.imgPrompt.trim()?panel.imgPrompt:panel.desc;
-  const bibles=(panel.chars||[]).map(cid=>{const c=findChar(cid);return c?c.bible:null;}).filter(Boolean);
-  const bibleStr=bibles.length?(' Featuring '+bibles.join(' and ')+'.'):'';
-  return `${base}.${bibleStr} ${SCENE_STYLE}`;
-}
-function charFilename(cid,vid){return safeName(cid)+'_'+safeName(vid)+'.png';}
-function panelFilename(pid){const m=pid.match(/^S(\d+)_P(\d+)$/);if(m)return 'scene_'+m[1]+'_case_'+m[2]+'.png';return safeName(pid)+'.png';}
-
-/* ═════════════════════════════════════════════════════════════════════
-   MODÈLE
-   ═════════════════════════════════════════════════════════════════════ */
-function newChar(def){
-  def=def||{};
-  return {
-    id:def.id||uid(),name:def.name||'Personnage',bible:def.bible||'',desc:def.desc||'',
-    views:VIEW_DEFS.map(v=>{
-      const found=(Array.isArray(def.views)?def.views.find(x=>x.id===v.id):null)||{};
-      return {id:v.id,label:v.label,en:v.en,prompt:found.prompt||'',img:found.img||null,busy:false,err:''};
-    }),
-    principalViewId:def.principalViewId||'face'
-  };
-}
-function newPanel(def){
-  def=def||{};
-  const st=(def.st==='queued'||def.st==='running'||def.st==='ok'||def.st==='error'||def.st==='paused')?def.st:'idle';
-  return {
-    id:def.id||('P'+uid()),
-    desc:def.desc||'',
-    chars:Array.isArray(def.chars)?def.chars.slice():[],
-    decor:def.decor||'',framing:def.framing||'',action:def.action||'',
-    imgPrompt:def.imgPrompt||def.desc||'',
-    animPrompt:def.animPrompt||'slow zoom in',
-    duration:typeof def.duration==='number'?def.duration:5,
-    img:def.img||null,
-    st:st,busy:false,err:'',
-    retries:typeof def.retries==='number'?def.retries:0,
-    lastAttempt:def.lastAttempt||0
-  };
-}
-function newBoard(def){
-  def=def||{};
-  return {id:def.id||('S'+uid()),title:def.title||'Scène',panels:Array.isArray(def.panels)?def.panels.map(newPanel):[]};
-}
-function newP(){
-  return {
-    id:uid()+uid(),created:Date.now(),upd:Date.now(),
-    title:'La Famille Extraterrestre',page:0,last:0,max:0,
-    ratio:'9:16',duration:5,
-    characters:CHAR_DEFAULTS.map(newChar),
-    boards:BOARDS_DEFAULTS.map(newBoard),
-    sub:{}
-  };
-}
-function normalizeProject(p){
-  const out=Object.assign(newP(),p||{});
-  out.id=out.id||uid()+uid();
-  out.created=out.created||Date.now();
-  out.upd=Date.now();
-  out.ratio=out.ratio||'9:16';
-  if(!Array.isArray(out.characters)||!out.characters.length)out.characters=CHAR_DEFAULTS.map(newChar);
-  out.characters=out.characters.map(c=>{
-    const base=CHAR_DEFAULTS.find(x=>x.id===c.id)||{id:c.id||uid(),name:c.name||'Personnage',bible:c.bible||'',desc:c.desc||''};
-    return newChar({id:base.id,name:c.name||base.name,bible:c.bible||base.bible||'',desc:c.desc||base.desc||'',views:c.views||[],principalViewId:c.principalViewId||'face'});
-  });
-  if(!Array.isArray(out.boards)||!out.boards.length)out.boards=BOARDS_DEFAULTS.map(newBoard);
-  out.boards=out.boards.map(b=>newBoard(b));
-  return out;
-}
-function setP(p){P=normalizeProject(p);dbPut('config',{key:'last',v:P.id});}
-const findChar=id=>P.characters.find(c=>c.id===id);
-const findView=(cid,vid)=>{const c=findChar(cid);return c?c.views.find(v=>v.id===vid):null;};
-const findPanel=pid=>{for(const b of P.boards){const p=b.panels.find(x=>x.id===pid);if(p)return{board:b,panel:p};}return null;};
-
-/* ═════════════════════════════════════════════════════════════════════
-   FILE D'ATTENTE
-   ═════════════════════════════════════════════════════════════════════ */
-function getQueueStats(){
-  const list=[];
-  for(const b of P.boards)for(const p of b.panels)list.push(p);
-  const total=list.length;
-  const done=list.filter(p=>p.img&&p.img.assetId).length;
-  const queued=list.filter(p=>p.st==='queued').length;
-  const running=list.filter(p=>p.st==='running').length;
-  const error=list.filter(p=>p.st==='error').length;
-  const missing=list.filter(p=>!p.img||!p.img.assetId).length;
-  return {total,done,queued,running,error,missing,list};
-}
-function renderQueueBanner(){
-  const b=$('#qBanner');if(!b)return;
-  if(!P){b.classList.remove('on');return;}
-  const s=getQueueStats();
-  if(!QUEUE.running&&!QUEUE.current&&s.queued===0){b.classList.remove('on');return;}
-  b.classList.add('on');
-  const pct=s.total?Math.round(s.done/s.total*100):0;
-  b.innerHTML=
-    '<div style="flex:1;min-width:220px"><b>File :</b> '+s.done+'/'+s.total+' images · '+s.queued+' en attente · '+s.running+' en cours · '+s.error+' échec(s) · '+pct+'%</div>'+
-    '<div style="flex:1;min-width:180px"><div class="progress-bar"><i style="width:'+pct+'%"></i></div></div>'+
-    '<button class="sm ghost" data-a="q-pause">'+(QUEUE.abort?'REPRENDRE':'PAUSE')+'</button>'+
-    '<button class="sm ghost" data-a="q-clear">Vider la file</button>';
-}
-async function processQueue(){
-  if(QUEUE.running)return;
-  QUEUE.running=true;QUEUE.abort=false;
-  refreshQui();
-  try{
-    while(!QUEUE.abort){
-      let next=null;
-      for(const b of P.boards){for(const p of b.panels){if(p.st==='queued'){next=p;break;}}if(next)break;}
-      if(!next)break;
-      QUEUE.current=next.id;refresh();
-      let attempt=0;let ok=false;let lastErr=null;
-      while(attempt<=MAX_RETRIES&&!QUEUE.abort){
-        attempt++;
-        next.st='running';next.busy=true;next.err='';next.lastAttempt=Date.now();
-        save();refresh();
-        try{
-          const img=await generatePanelAsset(next);
-          if(next.img&&next.img.assetId)await deleteAsset(next.img.assetId);
-          next.img=img;next.st='ok';next.err='';ok=true;
-          await flushSave();
-          log('ok','Image '+next.id+' générée ('+fmtSize(img.size||0)+')');
-          break;
-        }catch(e){
-          lastErr=e;
-          if(e.name==='AbortError'){next.st='queued';log('wr',next.id+' annulé');break;}
-          const wait=RETRY_BASE_MS*Math.pow(2,attempt-1);
-          log('wr',next.id+' échec '+attempt+'/'+MAX_RETRIES+' : '+sanLog(e.message)+' · retry dans '+(wait/1000)+'s');
-          if(attempt>MAX_RETRIES){next.st='error';next.err=e.message||'Échec';break;}
-          const until=Date.now()+wait;
-          while(Date.now()<until&&!QUEUE.abort)await sleep(500);
-        }finally{next.busy=false;}
-      }
-      if(!ok&&next.st!=='error'&&!QUEUE.abort){next.st='queued';}
-      await flushSave();refresh();
-    }
-  }finally{
-    QUEUE.running=false;QUEUE.current=null;
-    refresh();renderQueueBanner();
-    if(!QUEUE.abort)log('ok','File d\'attente terminée');
-  }
-}
-async function enqueueAllMissing(){
-  const s=getQueueStats();
-  const toQueue=s.list.filter(p=>!p.img||!p.img.assetId);
-  if(!toQueue.length)return toast('Aucune image manquante');
-  const n=Math.min(toQueue.length,MAX_BATCH);
-  for(let i=0;i<n;i++)toQueue[i].st='queued';
-  save();refresh();
-  toast(n+' case(s) ajoutée(s) à la file (max '+MAX_BATCH+')');
-  log('in',n+' case(s) en file · '+(toQueue.length-n)+' restantes hors lot');
-  if(!QUEUE.running)processQueue();
-}
-
-/* ═════════════════════════════════════════════════════════════════════
-   GÉNÉRATION D'UNE IMAGE
-   ═════════════════════════════════════════════════════════════════════ */
-async function ensureRefBlobUrl(img){
-  if(!img)return null;
-  if(img.assetId)return await loadAssetUrl(img.assetId);
-  if(img.d)return img.d;
-  if(img.u)return img.u;
-  return null;
-}
-async function charRefsForImg(c){
-  const out=[];
-  const pv=c.views.find(v=>v.id===(c.principalViewId||'face'));
-  const fv=c.views.find(v=>v.id==='face');
-  for(const v of [pv,fv]){
-    if(v&&v.img&&!out.includes(v)){
-      const url=await ensureRefBlobUrl(v.img);
-      if(url)out.push(url);
-    }
-  }
-  return out;
-}
-async function generatePanelAsset(panel){
-  const refs=[];
-  const chars=(panel.chars||[]).slice(0,MAX_REF);
-  for(const cid of chars){
-    const c=findChar(cid);if(!c)continue;
-    const charRefs=await charRefsForImg(c);
-    for(const u of charRefs){
-      if(refs.length>=MAX_REF)break;
-      if(!refs.includes(u))refs.push(u);
-    }
-    if(refs.length>=MAX_REF)break;
-  }
-  const ctrl=registerAbort(panel.id);
-  try{
-    return await mkImg(panelImgPrompt(panel),refs,P.ratio,ctrl.signal);
-  }finally{clearAbort(panel.id);}
-}
-async function generateCharViewAsset(cid,vid){
-  const c=findChar(cid);const v=c&&c.views.find(x=>x.id===vid);
-  if(!c||!v)throw new Error('Vue introuvable');
-  const refs=[];
-  const pv=c.views.find(x=>x.id===(c.principalViewId||'face'));
-  if(pv&&pv.img&&pv.id!==v.id){
-    const u=await ensureRefBlobUrl(pv.img);
-    if(u)refs.push(u);
-  }
-  const ctrl=registerAbort(cid+'/'+vid);
-  try{
-    return await mkImg(charViewPrompt(c,v),refs,'1:1',ctrl.signal);
-  }finally{clearAbort(cid+'/'+vid);}
-}
-async function genCharView(cid,vid){
-  const key='char:'+cid+'/'+vid;
-  if(!lock(key))return toast('Génération déjà en cours');
-  const c=findChar(cid);const v=c&&c.views.find(x=>x.id===vid);
-  if(!c||!v){unlock(key);return;}
-  v.busy=true;v.err='';refresh();
-  try{
-    const newImg=await generateCharViewAsset(cid,vid);
-    if(v.img&&v.img.assetId)await deleteAsset(v.img.assetId);
-    v.img=newImg;
-    toast('✓ '+cid+' / '+vid);
-    await flushSave();
-  }catch(e){
-    if(e.name==='AbortError'){v.err='Annulé';}
-    else{v.err=e.message||'Échec';log('er','vue '+cid+'/'+vid+' : '+(e.message||e));}
-  }finally{unlock(key);v.busy=false;await flushSave();refresh();}
-}
-async function genPanelImg(pid){
-  if(!lock('panel:'+pid))return toast('Génération déjà en cours');
-  const f=findPanel(pid);if(!f){unlock('panel:'+pid);return;}
-  const p=f.panel;p.busy=true;p.err='';refresh();
-  try{
-    const newImg=await generatePanelAsset(p);
-    if(p.img&&p.img.assetId)await deleteAsset(p.img.assetId);
-    p.img=newImg;p.st='ok';
-    toast('✓ '+pid+' ('+fmtSize(newImg.size||0)+')');
-    log('ok',pid+' · '+fmtSize(newImg.size||0));
-  }catch(e){
-    if(e.name==='AbortError'){p.err='Annulé';}
-    else{p.err=e.message||'Échec';log('er','panel '+pid+' : '+(e.message||e));}
-  }finally{unlock('panel:'+pid);p.busy=false;await flushSave();refresh();}
-}
-
 /* ═════════════════════════════════════════════════════════════════════
    ASSEMBLAGE MP4 LOCAL (Ken Burns ffmpeg.wasm)
    ═════════════════════════════════════════════════════════════════════ */
@@ -831,13 +151,9 @@ function triggerDownloadUrl(url,filename){
   }catch(e){log('er','Téléchargement échoué : '+e.message);return false;}
 }
 async function dlAssetById(assetId,filename){
-  const b=await getAssetBlob(assetId);
-  if(!b)return toast('❌ Image introuvable dans le stockage');
-  const url=URL.createObjectURL(b);
-  if(triggerDownloadUrl(url,filename)){
-    toast('⬇ '+filename);
-    setTimeout(()=>URL.revokeObjectURL(url),30000);
-  }
+  const dataUrl=await getAssetDataUrl(assetId);
+  if(!dataUrl)return toast('❌ Image introuvable dans le stockage');
+  if(triggerDownloadUrl(dataUrl,filename))toast('⬇ '+filename);
 }
 async function dlCharView(cid,vid){
   const c=findChar(cid);const v=c&&c.views.find(x=>x.id===vid);
@@ -928,16 +244,16 @@ async function exportProjectFull(){
   try{
     const zip=new JSZip();
     const meta={
-      version:3,
+      version:4,
       kind:'xenoscope-full',
       created:Date.now(),
       project:JSON.parse(JSON.stringify(P))
     };
     for(const c of meta.project.characters||[])for(const v of c.views||[]){
-      if(v.img&&v.img.assetId){v.img._ref='assets/'+v.img.assetId;delete v.img.u;}
+      if(v.img&&v.img.assetId){v.img._ref='assets/'+v.img.assetId+'.txt';}
     }
     for(const b of meta.project.boards||[])for(const p of b.panels||[]){
-      if(p.img&&p.img.assetId){p.img._ref='assets/'+p.img.assetId;delete p.img.u;}
+      if(p.img&&p.img.assetId){p.img._ref='assets/'+p.img.assetId+'.txt';}
     }
     zip.file('project.json',JSON.stringify(meta,null,2));
     const assetIds=new Set();
@@ -945,10 +261,10 @@ async function exportProjectFull(){
     for(const b of P.boards||[])for(const p of b.panels||[])if(p.img&&p.img.assetId)assetIds.add(p.img.assetId);
     let n=0;
     for(const id of assetIds){
-      const b=await getAssetBlob(id);
-      if(b){zip.file('assets/'+id,b);n++;}
+      const dataUrl=await getAssetDataUrl(id);
+      if(dataUrl){zip.file('assets/'+id+'.txt',dataUrl);n++;}
     }
-    const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
+    const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:1}});
     const url=URL.createObjectURL(blob);
     triggerDownloadUrl(url,'xenoscope_save_'+P.id+'.zip');
     setTimeout(()=>URL.revokeObjectURL(url),60000);
@@ -974,19 +290,20 @@ function importProjectFull(file){
       const assetMap=new Map();
       const assetFiles=Object.keys(zip.files).filter(n=>n.startsWith('assets/')&&!zip.files[n].dir);
       for(const path of assetFiles){
-        const oldId=path.replace('assets/','');
-        const blob=await zip.files[path].async('blob');
-        const newId=await saveAsset(blob,blob.type||'image/png','import');
-        assetMap.set(oldId,newId);
+        const oldId=path.replace('assets/','').replace('.txt','');
+        const dataUrl=await zip.files[path].async('string');
+        if(dataUrl&&dataUrl.indexOf('data:')===0){
+          const newId=await saveAssetFromDataUrl(dataUrl,'image/png',0,'import');
+          assetMap.set(oldId,newId);
+        }
       }
       for(const c of proj.characters||[])for(const v of c.views||[]){
-        if(v.img&&v.img._ref){const oldId=v.img._ref.replace('assets/','');const newId=assetMap.get(oldId);if(newId)v.img={assetId:newId,u:null,size:0,created:Date.now()};else v.img=null;}
+        if(v.img&&v.img._ref){const oldId=v.img._ref.replace('assets/','').replace('.txt','');const newId=assetMap.get(oldId);if(newId)v.img={assetId:newId,size:0,created:Date.now()};else v.img=null;}
       }
       for(const b of proj.boards||[])for(const p of b.panels||[]){
-        if(p.img&&p.img._ref){const oldId=p.img._ref.replace('assets/','');const newId=assetMap.get(oldId);if(newId)p.img={assetId:newId,u:null,size:0,created:Date.now()};else p.img=null;}
+        if(p.img&&p.img._ref){const oldId=p.img._ref.replace('assets/','').replace('.txt','');const newId=assetMap.get(oldId);if(newId)p.img={assetId:newId,size:0,created:Date.now()};else p.img=null;}
       }
       const normalized=normalizeProject(proj);
-      releaseAssetCache();
       setP(normalized);
       page=1;refresh();
       log('ok','Projet importé · '+assetMap.size+' asset(s)');
@@ -1001,8 +318,8 @@ function importProjectFull(file){
 }
 async function exportProjectMeta(){
   const clean=JSON.parse(JSON.stringify(P));
-  for(const c of clean.characters||[])for(const v of c.views||[]){if(v.img){v.img={u:v.img.u||null,assetId:v.img.assetId||null,note:'médias non intégrés'};}}
-  for(const b of clean.boards||[])for(const p of b.panels||[]){if(p.img)p.img={u:p.img.u||null,assetId:p.img.assetId||null,note:'médias non intégrés'};}
+  for(const c of clean.characters||[])for(const v of c.views||[]){if(v.img){v.img={assetId:v.img.assetId||null,note:'médias non intégrés'};}}
+  for(const b of clean.boards||[])for(const p of b.panels||[]){if(p.img)p.img={assetId:p.img.assetId||null,note:'médias non intégrés'};}
   const json=JSON.stringify(clean,null,2);
   const blob=new Blob([json],{type:'application/json'});
   const url=URL.createObjectURL(blob);
@@ -1014,6 +331,12 @@ async function exportProjectMeta(){
 /* ═════════════════════════════════════════════════════════════════════
    UI
    ═════════════════════════════════════════════════════════════════════ */
+const guide=(h,c)=>'<div class="guide '+(c||'')+'"><div>'+h+'</div></div>';
+const hd=(n,t)=>'<div class="lab">ÉTAPE '+n+' / 4</div><h2>'+t+'</h2>';
+const btn=(a,l,c,x)=>'<button class="'+(c||'')+'" data-a="'+a+'" '+(x||'')+'>'+l+'</button>';
+const foot=(prev,next)=>'<div class="ft">'+(prev||'<span></span>')+(next||'')+'</div>';
+const nextBtn=(a,l,x)=>'<button class="big" data-a="'+a+'" '+(x||'')+'>'+l+' →</button>';
+
 function imgStateBadge(o){
   if(!o||!o.img)return '<span class="badge er">vide</span>';
   if(o.img.assetId)return '<span class="badge ok">✓ local</span>';
@@ -1027,11 +350,11 @@ function panelStateBadge(p){
   if(p.st==='ok')return '<span class="badge ok">ok</span>';
   return '';
 }
-function imBox(o,ratio,assetUrl){
-  const url=assetUrl||(o&&o.img?o.img.u:null);
+function imBox(o,ratio,assetDataUrl){
+  const src=assetDataUrl||null;
   const isBusy=o&&(o.busy||o.st==='running');
   return '<div class="im" style="aspect-ratio:'+(ratio||AR())+'">'+
-    (url?'<img src="'+esc(url)+'" alt="" loading="lazy">':'<span>'+(isBusy?'création…':'pas d\'image')+'</span>')+
+    (src?'<img src="'+esc(src)+'" alt="" loading="lazy">':'<span>'+(isBusy?'création…':'pas d\'image')+'</span>')+
     (isBusy?'<i class="sp"></i>':'')+'</div>';
 }
 function charViewCard(cid,view,assetUrl){
@@ -1121,19 +444,13 @@ async function buildAssetMap(){
   const collect=async(img)=>{
     if(!img||!img.assetId)return;
     if(m.has(img.assetId))return;
-    const u=await loadAssetUrl(img.assetId);
-    if(u)m.set(img.assetId,u);
+    const du=await getAssetDataUrl(img.assetId);
+    if(du)m.set(img.assetId,du);
   };
   for(const c of P.characters)for(const v of c.views)await collect(v.img);
   for(const b of P.boards)for(const p of b.panels)await collect(p.img);
   return m;
 }
-
-const guide=(h,c)=>'<div class="guide '+(c||'')+'"><div>'+h+'</div></div>';
-const hd=(n,t)=>'<div class="lab">ÉTAPE '+n+' / 4</div><h2>'+t+'</h2>';
-const btn=(a,l,c,x)=>'<button class="'+(c||'')+'" data-a="'+a+'" '+(x||'')+'>'+l+'</button>';
-const foot=(prev,next)=>'<div class="ft">'+(prev||'<span></span>')+(next||'')+'</div>';
-const nextBtn=(a,l,x)=>'<button class="big" data-a="'+a+'" '+(x||'')+'>'+l+' →</button>';
 
 const VIEW={};
 
@@ -1361,8 +678,9 @@ document.addEventListener('change',async e=>{
     const f=t.files[0];if(!f)return;
     try{
       if(v.img&&v.img.assetId)await deleteAsset(v.img.assetId);
-      const id=await saveAsset(f,f.type||'image/png','upload');
-      v.img={assetId:id,u:null,size:f.size,created:Date.now()};
+      const dataUrl=await blobToDataUrl(f);
+      const id=await saveAssetFromDataUrl(dataUrl,f.type||'image/png',f.size,'upload');
+      v.img={assetId:id,size:f.size,created:Date.now()};
       await flushSave();refresh();
       toast('✓ Image importée');
     }catch(err){toast('❌ '+err.message);}
@@ -1373,8 +691,9 @@ document.addEventListener('change',async e=>{
     const file=t.files[0];if(!file)return;
     try{
       if(f.panel.img&&f.panel.img.assetId)await deleteAsset(f.panel.img.assetId);
-      const id=await saveAsset(file,file.type||'image/png','upload');
-      f.panel.img={assetId:id,u:null,size:file.size,created:Date.now()};
+      const dataUrl=await blobToDataUrl(file);
+      const id=await saveAssetFromDataUrl(dataUrl,file.type||'image/png',file.size,'upload');
+      f.panel.img={assetId:id,size:file.size,created:Date.now()};
       f.panel.st='ok';
       await flushSave();refresh();
       toast('✓ Image importée');
@@ -1404,7 +723,7 @@ async function sessions(){
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,id=b.dataset.id;
   if(a==='closemd'){const m=$('#md');if(m)m.remove();return;}
-  if(a==='open'){await flushSave();const p=await dbGet('projects',id);if(!p)return;releaseAssetCache();setP(p);page=KEYS.list.length?1:0;const m=$('#md');if(m)m.remove();refresh();return;}
+  if(a==='open'){await flushSave();const p=await dbGet('projects',id);if(!p)return;setP(p);page=KEYS.list.length?1:0;const m=$('#md');if(m)m.remove();refresh();return;}
   if(a==='delsess'){
     if(!confirm('Supprimer ce projet et ses images locales ?'))return;
     const p=await dbGet('projects',id);
