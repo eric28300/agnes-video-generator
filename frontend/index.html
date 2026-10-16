@@ -159,9 +159,6 @@ const abortTask=id=>{const c=ABORTS.get(id);if(c&&!c.signal.aborted)c.abort();};
 const PX=u=>PROXY+encodeURIComponent(u);
 const QUEUE={running:false,abort:false,current:null};
 
-/* ═════════════════════════════════════════════════════════════════════
-   INDEXEDDB v10
-   ═════════════════════════════════════════════════════════════════════ */
 function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('xenoscope_v10',1);r.onerror=()=>rej(r.error);r.onsuccess=()=>res(r.result);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id'});if(!d.objectStoreNames.contains('assets'))d.createObjectStore('assets',{keyPath:'id'});if(!d.objectStoreNames.contains('config'))d.createObjectStore('config',{keyPath:'key'});}});}
 const tx=(s,m,f)=>new Promise((res,rej)=>{try{const r=f(db.transaction(s,m).objectStore(s));r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});
 let mode='idb';
@@ -173,38 +170,45 @@ async function dbPut(s,v){const k=v.key||v.id;mem[s][k]=v;if(db&&mode==='idb'){t
 async function dbDel(s,k){delete mem[s][k];if(db&&mode==='idb'){try{return await tx(s,'readwrite',o=>o.delete(k));}catch(e){fall();}}try{localStorage.removeItem(lsK(s,k));}catch(e){}}
 async function dbAll(s){if(db&&mode==='idb'){try{return await tx(s,'readonly',o=>o.getAll());}catch(e){fall();}}const o=Object.assign({},mem[s]);if(s==='config'||s==='projects'){try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n&&n.startsWith(lsK(s,''))){const v=JSON.parse(localStorage.getItem(n));o[v.key||v.id]=v;}}}catch(e){}}return Object.values(o);}
 
-/* ═════════════════════════════════════════════════════════════════════
-   ASSETS v10 — octets BRUTS (aucune compression canvas)
-   { id, bytes: Uint8Array, mime, size, created, tag }
-   ═════════════════════════════════════════════════════════════════════ */
 function blobToBytes(blob){return blob.arrayBuffer().then(b=>new Uint8Array(b));}
+
+/* ═════════════════════════════════════════════════════════════════════
+   PATCH 1 — Détection du type MIME réel depuis les octets
+   ═════════════════════════════════════════════════════════════════════ */
+function detectImageMime(bytes){
+  if(!bytes||bytes.length<4)return null;
+  if(bytes[0]===0xFF&&bytes[1]===0xD8)return 'image/jpeg';
+  if(bytes[0]===0x89&&bytes[1]===0x50&&bytes[2]===0x4E&&bytes[3]===0x47)return 'image/png';
+  if(bytes[0]===0x47&&bytes[1]===0x49&&bytes[2]===0x46)return 'image/gif';
+  if(bytes.length>=12&&bytes[0]===0x52&&bytes[1]===0x49&&bytes[2]===0x46&&bytes[3]===0x46&&bytes[8]===0x57&&bytes[9]===0x45&&bytes[10]===0x42&&bytes[11]===0x50)return 'image/webp';
+  return null;
+}
+
 function bytesToBase64(bytes){
   let binary='';const chunk=0x8000;
   for(let i=0;i<bytes.length;i+=chunk){binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));}
   return btoa(binary);
 }
+
+/* ═════════════════════════════════════════════════════════════════════
+   PATCH 3 — saveAssetFromBlob utilise detectImageMime
+   ═════════════════════════════════════════════════════════════════════ */
 async function saveAssetFromBlob(blob,mime,tag){
   if(!blob||!blob.size)throw new Error('Blob vide');
   const bytes=await blobToBytes(blob);
   if(!bytes||bytes.length<200)throw new Error('Binaire anormal ('+bytes.length+' o)');
-  /* Détecter le type réel via magic bytes */
-  let realMime=mime||blob.type||'application/octet-stream';
-  if(bytes[0]===0xFF&&bytes[1]===0xD8)realMime='image/jpeg';
-  else if(bytes[0]===0x89&&bytes[1]===0x50&&bytes[2]===0x4E&&bytes[3]===0x47)realMime='image/png';
-  else if(bytes[0]===0x52&&bytes[1]===0x49&&bytes[2]===0x46&&bytes[3]===0x46)realMime='image/webp';
-  else if(bytes[0]===0x47&&bytes[1]===0x49&&bytes[2]===0x46)realMime='image/gif';
-  else{
-    /* Ce n'est pas une image connue — logguer les 150 premiers caractères */
+  const real=detectImageMime(bytes);
+  if(!real){
     let preview='';
-    try{preview=new TextDecoder('utf-8').decode(bytes.slice(0,150));}catch(e){}
-    log('er','⚠ Blob reçu n\'est pas une image. type='+realMime+' taille='+bytes.length+' début="'+preview.replace(/\s+/g,' ').slice(0,120)+'"');
-    throw new Error('Le contenu reçu n\'est pas une image ('+realMime+')');
+    for(let i=0;i<Math.min(64,bytes.length);i++)preview+=('0'+bytes[i].toString(16)).slice(-2);
+    log('er','⚠ Octets ne sont pas une image connue · taille='+bytes.length+' · hex début='+preview);
+    throw new Error('Le contenu reçu n\'est pas une image valide');
   }
   const id='asset_'+uid()+Date.now().toString(36);
-  const rec={id,bytes,mime:realMime,size:bytes.length,created:Date.now(),tag:tag||'gen'};
+  const rec={id,bytes,mime:real,size:bytes.length,created:Date.now(),tag:tag||'gen'};
   const ok=await dbPut('assets',rec);
   if(!ok)throw new Error('IndexedDB a refusé l\'écriture');
-  log('ok','Asset '+id.slice(-6)+' sauvé · '+realMime+' · '+fmtSize(bytes.length));
+  log('ok','Asset sauvé · '+real+' · '+fmtSize(bytes.length));
   return id;
 }
 async function getAssetRecord(id){if(!id)return null;return await dbGet('assets',id);}
@@ -221,7 +225,7 @@ async function getAssetBlob(id){
     return new Blob([bytes],{type:rec.mime||'image/png'});
   }
   if(rec.dataUrl){
-    try{const [meta,b64]=String(rec.dataUrl).split(',');const mime=(meta.match(/data:([^;]+)/)||[])[1]||'image/png';const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime});}catch(e){return null;}
+    try{const [meta,b64]=String(rec.dataUrl).split(',');const mime=(meta.match(/data:([^;]+)/)||[])[1]||'image/png';const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime.split(';')[0].trim()});}catch(e){return null;}
   }
   return null;
 }
@@ -252,7 +256,44 @@ async function flushSave(){if(!P)return;clearTimeout(saveTimer);savePending=fals
 async function updateStorageChip(){const el=$('#storageChip');if(!el)return;try{if(!navigator.storage||!navigator.storage.estimate){el.textContent='💽 n/a';el.className='chip neutral';return;}const est=await navigator.storage.estimate();const used=est.usage||0,quota=est.quota||0;if(!quota){el.textContent='💽 '+fmtSize(used);el.className='chip neutral';return;}const pct=used/quota*100;el.textContent='💽 '+fmtSize(used)+' / '+fmtSize(quota)+' ('+pct.toFixed(0)+'%)';el.className='chip '+(pct>85?'off':pct>60?'warn':'');if(pct>90)log('wr','⚠️ Stockage presque plein');}catch(e){el.textContent='💽 n/a';el.className='chip neutral';}}
 async function slot(){for(;;){let live=KEYS.list.filter(o=>!o.off);if(!live.length&&KEYS.list.length){KEYS.list.forEach(o=>{o.off=false;o.bad=0;o.cool=0;});live=KEYS.list;}if(!live.length)throw Object.assign(new Error('Aucune clé active'),{fatal:true});const rpm=RPM[KEYS.plan].img||10;const iv=60000/rpm*1.15*F,now=Date.now();let best=null,bt=1e18;for(const o of live){const t=Math.max(o.img||0,o.cool||0,now);if(t<bt){bt=t;best=o;}}if(bt>now){await sleep(Math.min(bt-now,400));continue;}if(best.cool>Date.now())continue;best.img=now+iv;return best;}}
 async function callApi(url,body,signal,method){method=method||'POST';let lastErr=null;for(let a=0;a<3;a++){const o=await slot();try{const opt={method:method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+o.k}};if(body&&method==='POST')opt.body=JSON.stringify(body);if(signal)opt.signal=signal;const r=await fetch(url,opt);if(r.ok){o.bad=0;F=Math.max(1,F*0.97);return r;}const t=await r.text().catch(()=>'');log('er','HTTP '+r.status+' '+sanLog(t));if(r.status===429){o.cool=Date.now()+(parseInt(r.headers.get('Retry-After'))||30)*1000;F=Math.min(4,F*1.5);lastErr=new Error(frErr(429));continue;}if(r.status===401){o.bad++;if(o.bad>=2)o.off=true;lastErr=new Error(frErr(401));continue;}if(r.status>=500){lastErr=new Error(frErr(r.status));await sleep(2500*Math.pow(2,a));continue;}throw Object.assign(new Error(frErr(r.status,t)),{fatal:true});}catch(e){if(e.name==='AbortError')throw e;if(e.fatal)throw e;lastErr=e;await sleep(1500*(a+1));}}throw lastErr||new Error('Échec réseau');}
-async function fetchAsBlob(url){if(!url)return null;if(url.indexOf('data:')===0){try{const [meta,b64]=url.split(',');const mime=(meta.match(/data:([^;]+)/)||[])[1]||'image/png';const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime});}catch(e){return null;}}try{const r=await fetch(url,{mode:'cors'});if(r.ok){const b=await r.blob();log('in','Direct fetch OK · type='+b.type+' · '+fmtSize(b.size));return b;}}catch(e){log('wr','Direct fetch échoué : '+sanLog(e.message));}try{const r=await fetch(PX(url));if(r.ok){const b=await r.blob();log('in','Proxy fetch OK · type='+b.type+' · '+fmtSize(b.size));return b;}else{const txt=await r.text().catch(()=>'');log('er','Proxy HTTP '+r.status+' · '+sanLog(txt));}}catch(e){log('er','Proxy fetch échoué : '+sanLog(e.message));}return null;}
+
+/* ═════════════════════════════════════════════════════════════════════
+   PATCH 2 — fetchAsBlob détecte le vrai type MIME
+   ═════════════════════════════════════════════════════════════════════ */
+async function fetchAsBlob(url){
+  if(!url)return null;
+  if(url.indexOf('data:')===0){
+    try{
+      const [meta,b64]=url.split(',');
+      const rawMime=(meta.match(/data:([^;]+)/)||[])[1]||'image/png';
+      const cleanMime=rawMime.split(';')[0].trim();
+      const bin=atob(b64);const arr=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+      const real=detectImageMime(arr)||cleanMime;
+      return new Blob([arr],{type:real});
+    }catch(e){return null;}
+  }
+  let r=null;
+  try{r=await fetch(url,{mode:'cors'});}catch(e){log('wr','Direct fetch échoué : '+sanLog(e.message));}
+  if(!r||!r.ok){
+    try{r=await fetch(PX(url));}catch(e){log('er','Proxy fetch échoué : '+sanLog(e.message));}
+  }
+  if(!r||!r.ok){log('er','Fetch HTTP '+(r?r.status:'?'));return null;}
+  try{
+    const buf=await r.arrayBuffer();
+    const bytes=new Uint8Array(buf);
+    const real=detectImageMime(bytes);
+    if(!real){
+      let preview='';
+      for(let i=0;i<Math.min(64,bytes.length);i++)preview+=('0'+bytes[i].toString(16)).slice(-2);
+      log('er','⚠ Réponse non-image · HTTP '+r.status+' · taille='+bytes.length+' · hex début='+preview);
+      return null;
+    }
+    log('in','Image OK · '+real+' · '+fmtSize(bytes.length));
+    return new Blob([bytes],{type:real});
+  }catch(e){log('er','Lecture blob échouée : '+sanLog(e.message));return null;}
+}
+
 async function mkImg(prompt,refsBase64,ratio,signal){
   const body={model:IMG,prompt:san(prompt),n:1,size:'1K',ratio:ratio||(P?P.ratio:'9:16'),extra_body:{response_format:'url'}};
   if(refsBase64&&refsBase64.length){
@@ -268,8 +309,12 @@ async function mkImg(prompt,refsBase64,ratio,signal){
   log('in','Réponse Agnes : '+(b64resp?'b64 ('+Math.round(b64resp.length/1024)+' Ko)':'URL '+remoteUrl.slice(0,80)));
   let blob=null;
   if(b64resp){
-    try{const bin=atob(b64resp);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);blob=new Blob([arr],{type:'image/png'});}
-    catch(e){log('er','Décodage b64 échoué : '+e.message);}
+    try{
+      const bin=atob(b64resp);const arr=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+      const real=detectImageMime(arr)||'image/png';
+      blob=new Blob([arr],{type:real});
+    }catch(e){log('er','Décodage b64 échoué : '+e.message);}
   }
   if(!blob&&remoteUrl)blob=await fetchAsBlob(remoteUrl);
   if(!blob)throw new Error('Image générée mais non téléchargeable');
@@ -316,7 +361,7 @@ async function zipChar(cid){const c=findChar(cid);if(!c)return;const files=[];fo
 async function zipBoard(bid){const b=P.boards.find(x=>x.id===bid);if(!b)return;const files=await filesFromPanels(b.panels);if(!files.length)return toast('Aucune image');dlZip(files,'scene_'+safeName(bid)+'.zip');}
 async function zipAll(){const all=[];for(const c of P.characters){for(const v of c.views){if(v.img&&v.img.assetId){const b=await getAssetBlob(v.img.assetId);if(b)all.push({name:'personnages/'+charFilename(c.id,v.id),blob:b});}}}for(const b of P.boards)for(const p of b.panels){if(p.img&&p.img.assetId){const blob=await getAssetBlob(p.img.assetId);if(blob)all.push({name:'storyboard/'+panelFilename(p.id),blob:blob});}}if(!all.length)return toast('Aucune image');dlZip(all,'xenoscope_images_'+P.id+'.zip');}
 async function exportProjectFull(){toast('⏳ Sauvegarde…');try{const zip=new JSZip();const meta={version:10,kind:'xenoscope-full',created:Date.now(),project:JSON.parse(JSON.stringify(P))};for(const c of meta.project.characters||[])for(const v of c.views||[]){if(v.img&&v.img.assetId){v.img._ref='assets/'+v.img.assetId+'.bin';}}for(const b of meta.project.boards||[])for(const p of b.panels||[]){if(p.img&&p.img.assetId){p.img._ref='assets/'+p.img.assetId+'.bin';}}zip.file('project.json',JSON.stringify(meta,null,2));const assetIds=new Set();for(const c of P.characters||[])for(const v of c.views||[])if(v.img&&v.img.assetId)assetIds.add(v.img.assetId);for(const b of P.boards||[])for(const p of b.panels||[])if(p.img&&p.img.assetId)assetIds.add(p.img.assetId);let n=0;for(const id of assetIds){const blob=await getAssetBlob(id);if(blob){zip.file('assets/'+id+'.bin',blob);n++;}}const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:1}});const url=URL.createObjectURL(blob);triggerDownloadUrl(url,'xenoscope_save_'+P.id+'.zip');setTimeout(()=>URL.revokeObjectURL(url),60000);log('ok','Sauvegarde · '+n+' assets');toast('💾 Sauvegarde exportée ('+fmtSize(blob.size)+')');}catch(e){log('er','Export : '+e.message);toast('❌ '+e.message);}}
-function importProjectFull(file){const fr=new FileReader();fr.onload=async()=>{try{if(typeof JSZip==='undefined')throw new Error('JSZip non chargé');const zip=await JSZip.loadAsync(fr.result);const metaFile=zip.file('project.json');if(!metaFile)throw new Error('project.json absent');const meta=JSON.parse(await metaFile.async('string'));if(!meta.project)throw new Error('Format invalide');const proj=meta.project;const assetMap=new Map();const assetFiles=Object.keys(zip.files).filter(n=>n.startsWith('assets/')&&!zip.files[n].dir);for(const path of assetFiles){const oldId=path.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');let blob=null;try{blob=await zip.files[path].async('blob');}catch(e){}if(!blob){try{const txt=await zip.files[path].async('string');if(txt&&txt.indexOf('data:')===0){const i=txt.indexOf(',');const b64=txt.slice(i+1);const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i2=0;i2<bin.length;i2++)arr[i2]=bin.charCodeAt(i2);blob=new Blob([arr],{type:'image/jpeg'});}}catch(e){}}if(blob){const newId='asset_'+uid()+Date.now().toString(36)+Math.random().toString(36).slice(2,5);const bytes=await blobToBytes(blob);await dbPut('assets',{id:newId,bytes,mime:blob.type||'image/png',size:bytes.length,created:Date.now(),tag:'import'});assetMap.set(oldId,newId);}}for(const c of proj.characters||[])for(const v of c.views||[]){if(v.img&&v.img._ref){const oldId=v.img._ref.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');const newId=assetMap.get(oldId);if(newId)v.img={assetId:newId,size:0,created:Date.now()};else v.img=null;}}for(const b of proj.boards||[])for(const p of b.panels||[]){if(p.img&&p.img._ref){const oldId=p.img._ref.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');const newId=assetMap.get(oldId);if(newId)p.img={assetId:newId,size:0,created:Date.now()};else p.img=null;}}const normalized=normalizeProject(proj);setP(normalized);page=1;refresh();toast('✓ Projet restauré · '+assetMap.size+' image(s)');}catch(e){log('er','Import : '+e.message);toast('❌ '+e.message);}};fr.onerror=()=>toast('❌ Lecture impossible');fr.readAsArrayBuffer(file);}
+function importProjectFull(file){const fr=new FileReader();fr.onload=async()=>{try{if(typeof JSZip==='undefined')throw new Error('JSZip non chargé');const zip=await JSZip.loadAsync(fr.result);const metaFile=zip.file('project.json');if(!metaFile)throw new Error('project.json absent');const meta=JSON.parse(await metaFile.async('string'));if(!meta.project)throw new Error('Format invalide');const proj=meta.project;const assetMap=new Map();const assetFiles=Object.keys(zip.files).filter(n=>n.startsWith('assets/')&&!zip.files[n].dir);for(const path of assetFiles){const oldId=path.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');let blob=null;try{blob=await zip.files[path].async('blob');}catch(e){}if(blob){const newId='asset_'+uid()+Date.now().toString(36)+Math.random().toString(36).slice(2,5);const bytes=await blobToBytes(blob);const real=detectImageMime(bytes)||blob.type||'image/png';await dbPut('assets',{id:newId,bytes,mime:real,size:bytes.length,created:Date.now(),tag:'import'});assetMap.set(oldId,newId);}}for(const c of proj.characters||[])for(const v of c.views||[]){if(v.img&&v.img._ref){const oldId=v.img._ref.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');const newId=assetMap.get(oldId);if(newId)v.img={assetId:newId,size:0,created:Date.now()};else v.img=null;}}for(const b of proj.boards||[])for(const p of b.panels||[]){if(p.img&&p.img._ref){const oldId=p.img._ref.replace('assets/','').replace(/\.(bin|jpg|png|json|txt)$/i,'');const newId=assetMap.get(oldId);if(newId)p.img={assetId:newId,size:0,created:Date.now()};else p.img=null;}}const normalized=normalizeProject(proj);setP(normalized);page=1;refresh();toast('✓ Projet restauré · '+assetMap.size+' image(s)');}catch(e){log('er','Import : '+e.message);toast('❌ '+e.message);}};fr.onerror=()=>toast('❌ Lecture impossible');fr.readAsArrayBuffer(file);}
 async function exportProjectMeta(){const clean=JSON.parse(JSON.stringify(P));for(const c of clean.characters||[])for(const v of c.views||[]){if(v.img){v.img={assetId:v.img.assetId||null,note:'médias non intégrés'};}}for(const b of clean.boards||[])for(const p of b.panels||[]){if(p.img)p.img={assetId:p.img.assetId||null,note:'médias non intégrés'};}const json=JSON.stringify(clean,null,2);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);triggerDownloadUrl(url,'xenoscope_meta_'+P.id+'.json');setTimeout(()=>URL.revokeObjectURL(url),10000);toast('JSON exporté');}
 
 const guide=(h,c)=>'<div class="guide '+(c||'')+'"><div>'+h+'</div></div>';
@@ -344,7 +389,7 @@ async function hydrateImages(){
       const im=new Image();
       im.alt='';
       im.onload=()=>{try{URL.revokeObjectURL(url);}catch(e){}el.innerHTML='';el.appendChild(im);};
-      im.onerror=()=>{try{URL.revokeObjectURL(url);}catch(e){}el.innerHTML='<span style="color:var(--er)">affichage échoué</span>';log('er','Affichage '+aid+' échoué (blob type='+blob.type+', taille='+blob.size+')');};
+      im.onerror=()=>{try{URL.revokeObjectURL(url);}catch(e){}el.innerHTML='<span style="color:var(--er)">affichage échoué</span>';log('er','Affichage '+aid+' échoué (type='+blob.type+', taille='+blob.size+')');};
       el.innerHTML='<span>chargement…</span>';
       im.src=url;
     }catch(e){el.innerHTML='<span style="color:var(--er)">erreur</span>';log('er','hydrate '+aid+' : '+e.message);}
